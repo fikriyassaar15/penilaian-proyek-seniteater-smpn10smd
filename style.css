@@ -1,6 +1,6 @@
 /* ============================================================
    SP-PPT style.css — FULL FINAL
-   Brand banner sebagai header utama + Responsive
+   Brand header sticky + Responsive Mobile/Tablet/Desktop
    ============================================================ */
 :root{
   --bg:#f8f9fa;--bg-gradient:linear-gradient(180deg,#f8f9fa,#eef1f5);
@@ -43,7 +43,7 @@ svg.ico{width:16px;height:16px;display:inline-block;vertical-align:-3px;flex-shr
 .container{max-width:1100px;margin:0 auto;background:var(--card);border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow-lg);overflow:visible;}
 
 /* ============================================================
-   AUTH
+   AUTH (Login/Register)
    ============================================================ */
 .auth-container{max-width:480px;margin:40px auto;}
 .auth-box{padding:32px;}
@@ -61,37 +61,76 @@ svg.ico{width:16px;height:16px;display:inline-block;vertical-align:-3px;flex-shr
 .tab.active{background:var(--card);color:var(--primary);box-shadow:var(--shadow-sm);}
 
 /* ============================================================
-   BRAND BANNER — HEADER UTAMA (PALING ATAS)
+   APP BRAND HEADER — header utama sticky di atas dashboard
    ============================================================ */
-.brand-banner{
+.app-brand-header{
   position:sticky;
   top:0;
   z-index:100;
   display:flex;
   align-items:center;
-  gap:14px;
-  padding:12px 20px;
-  background:linear-gradient(135deg,var(--primary-soft),var(--info-soft));
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--border);
+  gap:16px;
+  padding:16px 22px;
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  color:#fff;
   border-radius:var(--radius-lg) var(--radius-lg) 0 0;
-  box-shadow:0 2px 8px rgba(0,0,0,.06);
-  transition:box-shadow .2s,border-radius .2s;
+  box-shadow:0 2px 12px rgba(37,99,235,.18);
+  transition:box-shadow .2s,border-radius .2s,padding .2s;
 }
-[data-theme="dark"] .brand-banner{
-  background:linear-gradient(135deg,rgba(96,165,250,.14),rgba(56,189,248,.10));
-}
-.brand-banner.is-stuck{
-  box-shadow:0 6px 20px rgba(0,0,0,.12);
+.app-brand-header.is-stuck{
+  box-shadow:0 6px 24px rgba(37,99,235,.28);
   border-radius:0;
 }
-[data-theme="dark"] .brand-banner.is-stuck{box-shadow:0 6px 20px rgba(0,0,0,.5);}
-.brand-banner .brand-logos-small{display:flex;gap:10px;flex-shrink:0;align-items:center;}
-.brand-banner .brand-logos-small img{height:52px;width:auto;object-fit:contain;}
-.brand-banner .brand-text-small{flex:1;min-width:0;}
-.brand-banner .brand-text-small h1{font-size:16px;font-weight:800;color:var(--text-strong);line-height:1.25;margin:0;}
-.brand-banner .brand-text-small p{font-size:12.5px;color:var(--text-muted);margin-top:2px;font-weight:500;}
+[data-theme="dark"] .app-brand-header{
+  background:linear-gradient(135deg,#1e40af,#1e3a8a);
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+}
+[data-theme="dark"] .app-brand-header.is-stuck{
+  box-shadow:0 6px 24px rgba(0,0,0,.55);
+}
+.app-brand-header .app-brand-logos{
+  display:flex;
+  gap:10px;
+  flex-shrink:0;
+  align-items:center;
+}
+.app-brand-header .app-brand-logos img{
+  height:56px;
+  width:auto;
+  object-fit:contain;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.15));
+}
+.app-brand-header .app-brand-text{
+  flex:1;
+  min-width:0;
+}
+.app-brand-header .app-brand-text h1{
+  font-size:17px;
+  font-weight:800;
+  color:#fff;
+  line-height:1.25;
+  margin:0;
+  letter-spacing:.2px;
+}
+.app-brand-header .app-brand-text p{
+  font-size:13px;
+  color:rgba(255,255,255,.88);
+  margin-top:3px;
+  font-weight:500;
+}
+
+/* ============================================================
+   HEADER (di bawah brand header)
+   ============================================================ */
+.header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.header-info{min-width:0;flex:1;}
+.header h2{font-size:15.5px;font-weight:700;color:var(--text-strong);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.header .user-info{font-size:12.5px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.header .user-info b{color:var(--text-strong);}
+.header .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.notif-btn{position:relative;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:5px;font-family:inherit;}
+.notif-btn:hover{background:var(--surface-2);}
+.notif-badge{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid var(--card);}
 
 /* ============================================================
    FORM
@@ -132,20 +171,7 @@ select[multiple] option{padding:6px 8px;}
 .pw-toggle .toggle-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:6px;display:flex;align-items:center;}
 
 /* ============================================================
-   HEADER (di bawah brand banner)
-   ============================================================ */
-.header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
-.header-info{min-width:0;flex:1;}
-.header h2{font-size:15.5px;font-weight:700;color:var(--text-strong);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.header .user-info{font-size:12.5px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.header .user-info b{color:var(--text-strong);}
-.header .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-.notif-btn{position:relative;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:5px;font-family:inherit;}
-.notif-btn:hover{background:var(--surface-2);}
-.notif-badge{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid var(--card);}
-
-/* ============================================================
-   CONTENT
+   CONTENT & CARD
    ============================================================ */
 .content{padding:24px;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;position:relative;transition:.15s;box-shadow:var(--shadow-sm);}
@@ -408,7 +434,7 @@ input:checked + .slider:before{transform:translateX(22px);}
 @keyframes spin{to{transform:rotate(360deg);}}
 
 /* ============================================================
-   EXTRAS
+   EXTRAS — Checklist, WA logs, Division
    ============================================================ */
 .extras-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--surface);border-radius:10px;border:1px dashed var(--border-strong);}
 .extras-toolbar .btn{font-size:12.5px;}
@@ -483,7 +509,7 @@ input:checked + .slider:before{transform:translateX(22px);}
 .division-progress-table tr:last-child td{border-bottom:none;}
 
 /* ============================================================
-   FEATURES
+   FEATURES — Skala nilai, template, keuangan
    ============================================================ */
 .scale-guide{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;}
 .scale-guide-title{font-weight:700;color:var(--text-strong);font-size:12.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
@@ -561,10 +587,10 @@ input:checked + .slider:before{transform:translateX(22px);}
   .timeline{padding-left:32px;}
   .timeline-item::before{left:-28px;width:16px;height:16px;top:18px;}
   .timeline::before{left:9px;}
-  .brand-banner{padding:10px 14px;gap:12px;}
-  .brand-banner .brand-logos-small img{height:44px;}
-  .brand-banner .brand-text-small h1{font-size:14px;}
-  .brand-banner .brand-text-small p{font-size:11.5px;}
+  .app-brand-header{padding:14px 18px;gap:12px;}
+  .app-brand-header .app-brand-logos img{height:48px;}
+  .app-brand-header .app-brand-text h1{font-size:15px;}
+  .app-brand-header .app-brand-text p{font-size:12px;}
 }
 
 /* ============================================================
@@ -648,11 +674,12 @@ input:checked + .slider:before{transform:translateX(22px);}
   .lini-massa .lm-text h3{font-size:13px;}
   .lini-massa .lm-body{padding:0 14px 14px;}
   .user-info{font-size:11.5px;}
-  .brand-banner{padding:8px 12px;gap:8px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;}
-  .brand-banner .brand-logos-small{gap:6px;}
-  .brand-banner .brand-logos-small img{height:36px;}
-  .brand-banner .brand-text-small h1{font-size:12.5px;line-height:1.2;}
-  .brand-banner .brand-text-small p{font-size:10.5px;margin-top:1px;}
+  .app-brand-header{padding:12px 14px;gap:10px;border-radius:12px 12px 0 0;}
+  .app-brand-header.is-stuck{border-radius:0;}
+  .app-brand-header .app-brand-logos{gap:6px;}
+  .app-brand-header .app-brand-logos img{height:40px;}
+  .app-brand-header .app-brand-text h1{font-size:13px;line-height:1.2;}
+  .app-brand-header .app-brand-text p{font-size:11px;margin-top:2px;}
 }
 
 /* ============================================================
@@ -671,10 +698,10 @@ input:checked + .slider:before{transform:translateX(22px);}
   .scale-guide-grid{grid-template-columns:1fr;}
   .progress-banner .big-count{font-size:22px;}
   .class-code-box .code{font-size:18px;}
-  .brand-banner{padding:6px 10px;}
-  .brand-banner .brand-logos-small img{height:32px;}
-  .brand-banner .brand-text-small h1{font-size:11.5px;}
-  .brand-banner .brand-text-small p{font-size:10px;}
+  .app-brand-header{padding:10px 12px;gap:8px;}
+  .app-brand-header .app-brand-logos img{height:34px;}
+  .app-brand-header .app-brand-text h1{font-size:12px;}
+  .app-brand-header .app-brand-text p{font-size:10.5px;}
 }
 
 /* ============================================================
@@ -722,8 +749,10 @@ input:checked + .slider:before{transform:translateX(22px);}
   .content{padding:28px;}
   .modal-content{max-width:820px;}
   .notif-panel{width:440px;}
-  .brand-banner .brand-logos-small img{height:56px;}
-  .brand-banner .brand-text-small h1{font-size:17px;}
+  .app-brand-header{padding:18px 24px;}
+  .app-brand-header .app-brand-logos img{height:64px;}
+  .app-brand-header .app-brand-text h1{font-size:19px;}
+  .app-brand-header .app-brand-text p{font-size:14px;}
 }
 
 /* ============================================================
@@ -743,7 +772,7 @@ input:checked + .slider:before{transform:translateX(22px);}
    ============================================================ */
 @media print{
   body{background:#fff;padding:0;}
-  .header .actions,.notif-btn,.extras-toolbar,.action-row,.close-btn,.btn{display:none!important;}
+  .header .actions,.notif-btn,.extras-toolbar,.action-row,.close-btn,.btn,.app-brand-header{display:none!important;}
   .container{box-shadow:none;border:none;}
   .modal-overlay{position:static;background:none;backdrop-filter:none;padding:0;}
   .modal-content{max-height:none;box-shadow:none;border:none;}
