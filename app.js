@@ -1,7 +1,10 @@
 /* ============================================================
-   SP-PPT app.js — CORE
+   SP-PPT app.js — FULL CORE
    Firebase + Auth + Notif + Absensi + Session Auto-Login
+   + Penilaian + Rekap + Broadcast + WA Logs
    ============================================================ */
+
+/* ===== FORCE HIDE LOADING ===== */
 (function(){
   var hidden=false;
   function forceHide(){
@@ -9,7 +12,6 @@
     var l=document.getElementById('loading-screen');
     if(l){l.style.transition='opacity .3s';l.style.opacity='0';setTimeout(function(){l.style.display='none';},350);}
   }
-  /* Safety: selalu hilang dalam 3 detik */
   setTimeout(forceHide,3000);
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){setTimeout(forceHide,800);});}
   else{setTimeout(forceHide,800);}
@@ -138,7 +140,7 @@ function canEvaluate(e,t){return getEvaluatorRoles(t).indexOf(e)>=0;}
 function canGuruEvaluate(t){return ['pimpinan_produksi','sutradara'].indexOf(t)>=0;}
 var KETUA_ROLES=['pimpinan_produksi','sutradara'];
 
-/* ===== DIVISIONS global ===== */
+/* ===== DIVISIONS ===== */
 const DIVISIONS={
   produksi:{label:'Tim Produksi',roles:['pimpinan_produksi','sekretaris','bendahara','koor_publikasi','koor_perlengkapan','koor_akomodasi','anggota_publikasi','anggota_perlengkapan','anggota_akomodasi']},
   artistik:{label:'Tim Artistik',roles:['sutradara','asisten_sutradara','pemain','koor_panggung','koor_musik','koor_busana','koor_rias','koor_cahaya','anggota_panggung','anggota_musik','anggota_busana','anggota_rias','anggota_cahaya']}
@@ -335,6 +337,7 @@ function registerSiswa(){
   var newStudents=cls.students.concat([ns]);
   fbSetClass(Object.assign({},cls,{students:newStudents})).then(function(){
     fbAddNotif({id:uid(),classId:cls.id,fromId:ns.id,fromName:name,fromType:'siswa',toId:'guru',type:'info',title:'Siswa Baru',message:name+' ('+(ROLES[role]?ROLES[role].label:role)+') mendaftar di '+cls.name,createdAt:Date.now(),readBy:[],doneBy:[]});
+    logActivity('student_register',name+' mendaftar sebagai '+(ROLES[role]?ROLES[role].label:role),{classId:cls.id});
     alert('Berhasil!\n\nNama: '+name+'\nKelas: '+cls.name);
     ['daftar-code','daftar-name','daftar-email','daftar-password','daftar-confirm','daftar-role','daftar-phone'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('siswa-kelas').value=cls.id;
@@ -595,7 +598,7 @@ function toggleStageActivation(cid,sid,a){var cur=Object.assign({},DB.activeStag
 function openAddClassModal(){openModal('Tambah Kelas','<div class="form-group"><label>Nama Kelas</label><input id="new-class-name" placeholder="Contoh: IX-A"><small class="hint">Kode otomatis di-generate</small></div><button class="btn btn-primary btn-block" onclick="addClass()">'+ico('save')+' Simpan</button>');}
 function addClass(){var n=document.getElementById('new-class-name').value.trim();if(!n){alert('Nama wajib!');return;}if(DB.classes.some(function(c){return c.name.toLowerCase()===n.toLowerCase();})){alert('Kelas ada!');return;}var code=genClassCode(n),id=uid();fbSetClass({id:id,name:n,code:code,students:[]}).then(function(){closeModal();alert('Kelas '+n+' dibuat!\n\nKode: '+code);});}
 
-/* ===== DELETE CLASS & STUDENT (dengan error handling) ===== */
+/* ===== DELETE CLASS & STUDENT ===== */
 function deleteClass(cid){
   var c=DB.classes.find(function(x){return x.id===cid;});
   if(!c){alert('Kelas tidak ditemukan.');return;}
@@ -603,7 +606,7 @@ function deleteClass(cid){
   if(!firebaseReady){alert('Firebase belum siap.');return;}
   console.log('Menghapus kelas:',cid,c.name);
   fb.collection('classes').doc(cid).delete().then(function(){
-    console.log('✅ Doc kelas dihapus');
+    console.log('Doc kelas dihapus');
     var cleanup=[
       fb.collection('deadlines').doc(cid).delete().catch(function(e){console.warn(e.message);}),
       fb.collection('activeStages').doc(cid).delete().catch(function(e){console.warn(e.message);}),
@@ -617,11 +620,10 @@ function deleteClass(cid){
   }).then(function(){
     return fb.collection('meetings').where('classId','==',cid).get().then(function(snap){if(snap.size===0)return;var b=fb.batch();snap.forEach(function(d){b.delete(d.ref);});return b.commit();}).catch(function(e){console.warn(e.message);});
   }).then(function(){
-    alert('✅ Kelas "'+c.name+'" berhasil dihapus!');
-    console.log('Kelas '+cid+' fully deleted');
+    alert('Kelas "'+c.name+'" berhasil dihapus!');
   }).catch(function(err){
-    console.error('❌ Delete class error:',err);
-    alert('❌ GAGAL hapus kelas!\n\nError: '+(err.message||err)+'\n\nCek Firestore Rules Anda.');
+    console.error('Delete class error:',err);
+    alert('GAGAL hapus kelas!\n\nError: '+(err.message||err)+'\n\nCek Firestore Rules Anda.');
   });
 }
 function deleteStudent(cid,sid){
@@ -631,18 +633,16 @@ function deleteStudent(cid,sid){
   if(!s){alert('Siswa tidak ditemukan.');return;}
   if(!confirm('Hapus siswa "'+s.name+'"?\n\nSemua nilai siswa ini akan dihapus.'))return;
   if(!firebaseReady){alert('Firebase belum siap.');return;}
-  console.log('Menghapus siswa:',sid,s.name);
   var newStudents=c.students.filter(function(x){return x.id!==sid;});
   var updated=Object.assign({},c,{students:newStudents});
   if(updated._id)delete updated._id;
   fb.collection('classes').doc(cid).set(updated,{merge:false}).then(function(){
-    console.log('✅ Siswa dihapus dari kelas');
     return fb.collection('evaluations').where('targetId','==',sid).get().then(function(snap){if(snap.size===0)return;var b=fb.batch();snap.forEach(function(d){b.delete(d.ref);});return b.commit();}).catch(function(e){console.warn(e.message);});
   }).then(function(){
-    alert('✅ Siswa "'+s.name+'" berhasil dihapus!');
+    alert('Siswa "'+s.name+'" berhasil dihapus!');
   }).catch(function(err){
-    console.error('❌ Delete student error:',err);
-    alert('❌ GAGAL hapus siswa!\n\nError: '+(err.message||err));
+    console.error('Delete student error:',err);
+    alert('GAGAL hapus siswa!\n\nError: '+(err.message||err));
   });
 }
 function regenerateClassCode(cid){var c=DB.classes.find(function(x){return x.id===cid;});if(!c)return;if(!confirm('Generate kode baru?'))return;var nc=genClassCode(c.name);fbSetClass(Object.assign({},c,{code:nc})).then(function(){alert('Kode baru: '+nc);});}
@@ -1302,18 +1302,8 @@ window.calcStageScore=calcStageScore;
 window.calcFinalScore=calcFinalScore;
 window.getAttendanceFactor=getAttendanceFactor;
 
-/* currentUser getter/setter supaya perubahan sinkron dengan extras.js */
-(function(){
-  var _cu=null;
-  Object.defineProperty(window,'currentUser',{
-    get:function(){return _cu;},
-    set:function(v){
-      _cu=v;
-      if(v)try{saveSession();}catch(e){}
-    },
-    configurable:true
-  });
-})();
+/* CATATAN: currentUser sudah otomatis global karena dideklarasikan dengan var di top-level.
+   TIDAK PERLU Object.defineProperty — itu penyebab error "Cannot redefine property: currentUser". */
 
 /* Re-expose fungsi render supaya extras.js bisa wrap */
 window.renderGuruDashboard=renderGuruDashboard;
