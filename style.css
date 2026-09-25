@@ -533,3 +533,14 @@ input:checked + .slider:before{transform:translateX(22px);}
   .header .actions,.notif-btn,.extras-toolbar,.action-row,.close-btn,.btn{display:none!important;}
   .container{box-shadow:none;border:none;}
 }
+/* ===== Features additions ===== */
+.btn-feedback{font-size:11px!important;padding:4px 10px!important;}
+.act-filter select{min-height:36px;}
+.summary-item{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px;text-align:center;}
+.summary-item.done{background:var(--success-soft);border-color:var(--success);}
+.summary-item.partial{background:var(--warning-soft);border-color:var(--warning);}
+.summary-item .stat-label{font-size:10.5px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
+.summary-item .stat-value{font-size:18px;font-weight:800;margin-top:6px;color:var(--text-strong);}
+select[multiple]{height:auto!important;min-height:120px;padding:6px!important;}
+select[multiple] option{padding:6px 8px;}
+.card-accent.red::before{background:var(--danger);}
