@@ -544,3 +544,10 @@ input:checked + .slider:before{transform:translateX(22px);}
 select[multiple]{height:auto!important;min-height:120px;padding:6px!important;}
 select[multiple] option{padding:6px 8px;}
 .card-accent.red::before{background:var(--danger);}
+/* ===== Features v2 ===== */
+.tpl-item{cursor:pointer;}
+.recap-stage-cb{width:18px;height:18px;accent-color:var(--primary);}
+#activity-log-body .activity-feed{max-height:450px;}
+#wa-logs-body .wa-log-item{border-left-color:var(--primary-light);}
+.card-accent.red::before{background:var(--danger);}
+select[multiple]{height:auto!important;min-height:120px;padding:6px!important;}
