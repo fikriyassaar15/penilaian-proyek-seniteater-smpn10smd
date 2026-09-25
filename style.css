@@ -551,3 +551,137 @@ select[multiple] option{padding:6px 8px;}
 #wa-logs-body .wa-log-item{border-left-color:var(--primary-light);}
 .card-accent.red::before{background:var(--danger);}
 select[multiple]{height:auto!important;min-height:120px;padding:6px!important;}
+/* ============================================================
+   FIX MOBILE — Tombol, icon, dan brand header
+   ============================================================ */
+
+/* Icon di dalam tombol tidak mengecil aneh */
+.btn svg.ico,
+.notif-btn svg.ico {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Tombol default: teks bisa wrap, jangan overflow */
+.btn {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+/* Extras toolbar & action row di tablet kecil: 2 per baris */
+@media (max-width: 640px) {
+  .extras-toolbar .btn,
+  .action-row .btn {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    font-size: 12px;
+    padding: 8px 10px;
+    min-height: 40px;
+  }
+  .extras-toolbar {
+    padding: 8px;
+    gap: 6px;
+  }
+  .action-row {
+    gap: 6px;
+  }
+}
+
+/* Mobile kecil: 1 per baris kalau perlu */
+@media (max-width: 420px) {
+  .extras-toolbar .btn,
+  .action-row .btn {
+    flex: 1 1 100%;
+    font-size: 12px;
+    padding: 9px 12px;
+    min-height: 42px;
+    gap: 6px;
+  }
+  .btn svg.ico { width: 14px !important; height: 14px !important; }
+  .btn-sm svg.ico { width: 12px !important; height: 12px !important; }
+  .btn-lg svg.ico { width: 16px !important; height: 16px !important; }
+  .header .actions .btn {
+    flex: 1 1 calc(50% - 3px);
+    min-height: 38px;
+    font-size: 11.5px;
+  }
+  .notif-btn {
+    font-size: 11.5px;
+    padding: 8px 10px;
+  }
+}
+
+/* Mobile sangat kecil: extra safety */
+@media (max-width: 360px) {
+  .btn { font-size: 11.5px; padding: 8px 10px; }
+  .btn svg.ico { width: 13px !important; height: 13px !important; }
+  .header .actions .btn { flex: 1 1 100%; }
+}
+
+/* ============================================================
+   BRAND BANNER — di paling atas semua dashboard
+   ============================================================ */
+.brand-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--primary-soft), var(--info-soft));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+[data-theme="dark"] .brand-banner {
+  background: linear-gradient(135deg, rgba(96,165,250,.12), rgba(56,189,248,.08));
+}
+.brand-banner .brand-logos-small {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.brand-banner .brand-logos-small img {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+}
+.brand-banner .brand-text-small {
+  flex: 1;
+  min-width: 0;
+}
+.brand-banner .brand-text-small h1 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-strong);
+  line-height: 1.25;
+  margin: 0;
+}
+.brand-banner .brand-text-small p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .brand-banner { padding: 10px 12px; gap: 10px; }
+  .brand-banner .brand-logos-small img { height: 38px; }
+  .brand-banner .brand-text-small h1 { font-size: 13.5px; }
+  .brand-banner .brand-text-small p { font-size: 11px; }
+}
+
+@media (max-width: 420px) {
+  .brand-banner { padding: 8px 10px; gap: 8px; border-radius: 10px; }
+  .brand-banner .brand-logos-small { gap: 6px; }
+  .brand-banner .brand-logos-small img { height: 32px; }
+  .brand-banner .brand-text-small h1 { font-size: 12px; line-height: 1.2; }
+  .brand-banner .brand-text-small p { font-size: 10.5px; margin-top: 1px; }
+}
+
+@media (max-width: 360px) {
+  .brand-banner .brand-logos-small img { height: 28px; }
+  .brand-banner .brand-text-small h1 { font-size: 11px; }
+  .brand-banner .brand-text-small p { font-size: 10px; }
+}
