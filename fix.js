@@ -1,8 +1,8 @@
 /* ============================================================
-   fix.js — Konsolidasi
-   Bagian A: Fix SVG ico2/ico size
-   Bagian B: Brand banner di semua dashboard
-   Bagian C: Auto-shrink icon di mobile
+   fix.js — KONSOLIDASI FINAL
+   A. Fix SVG ico2/ico size ('sm', 'lg', 'md', dll)
+   B. Brand banner sticky di semua dashboard
+   C. Auto-shrink icon di mobile
    Load PALING AKHIR setelah semua script lain
    ============================================================ */
 (function(){
@@ -41,7 +41,7 @@ console.log('[fix] Bagian A — ico2 & ico size diperbaiki');
 
 
 /* ============================================================
-   BAGIAN B — BRAND BANNER DI SEMUA DASHBOARD
+   BAGIAN B — BRAND BANNER STICKY DI SEMUA DASHBOARD
    ============================================================ */
 
 function brandBannerHTML(){
@@ -51,26 +51,62 @@ function brandBannerHTML(){
       '<img src="https://iili.io/nBiviCX.png" alt="Logo SMPN 10" onerror="this.style.display=\'none\'">'+
     '</div>'+
     '<div class="brand-text-small">'+
-      '<h1>Penilaian Proyek Seni Teater</h1>'+
+      '<h1>Sistem Penilaian Proyek Produksi Teater</h1>'+
       '<p>SMP Negeri 10 Samarinda</p>'+
     '</div>'+
   '</div>';
 }
-window.brandBannerHTML=brandBannerHTML;
+window.brandBannerHTML = brandBannerHTML;
 
 function injectBrand(){
-  var mc=document.getElementById('main-content');
+  var mc = document.getElementById('main-content');
   if(!mc) return;
-  if(mc.querySelector('.brand-banner')) return;
+  if(mc.querySelector('.brand-banner')) {
+    attachStickyObserver();
+    return;
+  }
   mc.insertAdjacentHTML('afterbegin', brandBannerHTML());
+  attachStickyObserver();
 }
 
-/* Override semua fungsi render supaya brand selalu ada di atas */
+/* Deteksi saat brand menempel di atas untuk efek shadow */
+function attachStickyObserver(){
+  var banner = document.querySelector('.brand-banner');
+  if(!banner) return;
+
+  /* Bersihkan listener sebelumnya */
+  if(window.__bannerScroll){
+    window.removeEventListener('scroll', window.__bannerScroll);
+    window.__bannerScroll = null;
+  }
+
+  var onScroll = function(){
+    var bannerRect = banner.getBoundingClientRect();
+    var parent = banner.parentElement;
+    var parentTop = parent ? parent.getBoundingClientRect().top : 0;
+    /* Banner dianggap "stuck" kalau sudah menempel di atas container */
+    if(bannerRect.top <= parentTop + 2){
+      banner.classList.add('is-stuck');
+    } else {
+      banner.classList.remove('is-stuck');
+    }
+  };
+
+  window.__bannerScroll = onScroll;
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll, {passive:true});
+
+  /* Cek sekali saat dipasang */
+  setTimeout(onScroll, 100);
+}
+window.attachStickyObserver = attachStickyObserver;
+
+/* Override fungsi render supaya brand selalu ada di atas */
 function wrapRender(fnName){
-  var _orig=window[fnName];
+  var _orig = window[fnName];
   if(typeof _orig !== 'function') return;
-  window[fnName]=function(){
-    var ret=_orig.apply(this, arguments);
+  window[fnName] = function(){
+    var ret = _orig.apply(this, arguments);
     injectBrand();
     return ret;
   };
@@ -79,7 +115,7 @@ function wrapRender(fnName){
 ['renderGuruDashboard','renderSiswaDashboard','renderAdminDashboard',
  'viewClass','renderRecap','renderStageManagement'].forEach(wrapRender);
 
-console.log('[fix] Bagian B — Brand banner aktif di semua dashboard');
+console.log('[fix] Bagian B — Brand banner sticky aktif di semua dashboard');
 
 
 /* ============================================================
@@ -98,10 +134,10 @@ function autoFixButtons(){
   });
 }
 
-var _rzTimer=null;
-window.addEventListener('resize',function(){
+var _rzTimer = null;
+window.addEventListener('resize', function(){
   if(_rzTimer) clearTimeout(_rzTimer);
-  _rzTimer=setTimeout(autoFixButtons, 200);
+  _rzTimer = setTimeout(autoFixButtons, 200);
 });
 
 /* Jalankan setelah modal dibuka */
@@ -114,6 +150,7 @@ if(typeof _origOpenModal === 'function'){
   };
 }
 
+/* Jalankan saat pertama load */
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', function(){ setTimeout(autoFixButtons, 800); });
 } else {
