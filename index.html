@@ -5,17 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=5">
 <meta name="theme-color" content="#f8f9fa">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <title>SP-PPT — Sistem Penilaian Proyek Produksi Teater</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <link rel="stylesheet" href="style.css">
 <script>
-  /* ============================================================
-     ISI DENGAN CONFIG FIREBASE ANDA
-     Firebase Console → Project Settings → Your apps → SDK setup
-     ============================================================ */
   window.FIREBASE_CONFIG = {
     apiKey: "AIzaSyDczk0n-4QvvwTDikDBnuTkRX_SlXIV9JQ",
     authDomain: "penilaian-proyek-teater-siswa.firebaseapp.com",
@@ -36,34 +31,17 @@
       bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
       key:'<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3"/>',
       out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
-      x:'<path d="M18 6L6 18M6 6l12 12"/>',
-      info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>'
+      x:'<path d="M18 6L6 18M6 6l12 12"/>'
     }[name] || '';
     var s = size || 16;
     return '<svg class="ico" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+p+'</svg>';
   };
-
-  window.__CONFIG_OK = true;
-  (function(){
-    var c = window.FIREBASE_CONFIG || {};
-    var bad = [];
-    ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'].forEach(function(k){
-      var v = String(c[k] || '');
-      if(!v || v.indexOf('ISI_') === 0){ bad.push(k); }
-    });
-    if(bad.length > 0){
-      window.__CONFIG_OK = false;
-      window.__CONFIG_ERROR = 'Field belum diisi: ' + bad.join(', ');
-    }
-  })();
-
   window.__hideLoading = function(){
     var ls = document.getElementById('loading-screen');
     if(!ls || ls.classList.contains('fade-out')) return;
     ls.classList.add('fade-out');
     setTimeout(function(){ ls.style.display = 'none'; }, 500);
   };
-
   document.addEventListener('DOMContentLoaded', function(){
     setTimeout(function(){
       var ls = document.getElementById('loading-screen');
@@ -75,28 +53,10 @@
         window.__hideLoading();
       }
     }, 5000);
-
-    if(!window.__CONFIG_OK){
-      var t = document.getElementById('loading-text');
-      var s = document.getElementById('loading-sub');
-      if(t) t.textContent = 'Firebase belum dikonfigurasi';
-      if(s) s.innerHTML = window.__CONFIG_ERROR + '<br><small>Isi <code>window.FIREBASE_CONFIG</code> di <code>index.html</code></small>';
-    }
   });
-
   window.addEventListener('error', function(e){
-    var t = document.getElementById('loading-text');
-    var s = document.getElementById('loading-sub');
-    if(t && t.textContent === 'Menghubungkan ke server...'){
-      t.textContent = 'Terjadi kesalahan';
-      if(s) s.textContent = 'Buka F12 Console untuk detail';
-    }
     console.error('[global]', e.message, e.filename + ':' + e.lineno);
     setTimeout(window.__hideLoading, 800);
-  });
-
-  window.addEventListener('unhandledrejection', function(e){
-    console.error('[promise]', e.reason);
   });
 </script>
 </head>
@@ -132,50 +92,24 @@
       <button class="tab" onclick="switchLoginTab('siswa')" id="tab-login-siswa">Siswa</button>
       <button class="tab" onclick="switchLoginTab('admin')" id="tab-login-admin">Admin</button>
     </div>
-
     <div id="form-login-guru">
-      <div class="form-group"><label>Email Guru</label>
-        <input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id" autocomplete="email"></div>
-      <div class="form-group pw-toggle"><label>Password</label>
-        <input type="password" id="guru-password" placeholder="Password" autocomplete="current-password">
-        <button class="toggle-btn" onclick="togglePw('guru-password',this)" type="button" aria-label="Tampilkan password">
-          <script>document.write(svgIco('eye',16))</script>
-        </button>
-      </div>
+      <div class="form-group"><label>Email Guru</label><input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id"></div>
+      <div class="form-group pw-toggle"><label>Password</label><input type="password" id="guru-password" placeholder="Password"><button class="toggle-btn" onclick="togglePw('guru-password',this)" type="button"><script>document.write(svgIco('eye',16))</script></button></div>
       <button class="btn btn-primary btn-block btn-lg" onclick="loginGuru()">Masuk sebagai Guru</button>
       <div class="center-mt"><button class="link" onclick="openForgotPassword('guru')">Lupa Password?</button></div>
     </div>
-
     <div id="form-login-siswa" class="hidden">
-      <div class="form-group"><label>Pilih Kelas</label>
-        <select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select></div>
-      <div class="form-group"><label>Email atau No. WhatsApp</label>
-        <input type="text" id="siswa-email" placeholder="nama@siswa.smp.belajar.id atau 08123456789" autocomplete="username">
-        <small class="hint">Bisa login pakai email atau nomor WA</small>
-      </div>
-      <div class="form-group pw-toggle"><label>Password</label>
-        <input type="password" id="siswa-password" placeholder="Password" autocomplete="current-password">
-        <button class="toggle-btn" onclick="togglePw('siswa-password',this)" type="button" aria-label="Tampilkan password">
-          <script>document.write(svgIco('eye',16))</script>
-        </button>
-      </div>
+      <div class="form-group"><label>Pilih Kelas</label><select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select></div>
+      <div class="form-group"><label>Email atau No. WhatsApp</label><input type="text" id="siswa-email" placeholder="nama@siswa.smp.belajar.id atau 08123456789"><small class="hint">Bisa login pakai email atau nomor WA</small></div>
+      <div class="form-group pw-toggle"><label>Password</label><input type="password" id="siswa-password" placeholder="Password"><button class="toggle-btn" onclick="togglePw('siswa-password',this)" type="button"><script>document.write(svgIco('eye',16))</script></button></div>
       <button class="btn btn-primary btn-block btn-lg" onclick="loginSiswa()">Masuk sebagai Siswa</button>
       <div class="center-mt"><button class="link" onclick="openForgotPassword('siswa')">Lupa Password?</button></div>
       <div class="divider-text">Belum punya akun? <a class="link" onclick="showRegisterPage()">Daftar di sini</a></div>
     </div>
-
     <div id="form-login-admin" class="hidden">
-      <div class="alert alert-info">
-        <script>document.write(svgIco('lock',16))</script>
-        <div><b>Area Administrator</b><br>Kelola akun guru pengampu.</div>
-      </div>
-      <div class="form-group"><label>Email Admin</label><input type="email" id="admin-email" autocomplete="email"></div>
-      <div class="form-group pw-toggle"><label>Password Admin</label>
-        <input type="password" id="admin-password" autocomplete="current-password">
-        <button class="toggle-btn" onclick="togglePw('admin-password',this)" type="button" aria-label="Tampilkan password">
-          <script>document.write(svgIco('eye',16))</script>
-        </button>
-      </div>
+      <div class="alert alert-info"><script>document.write(svgIco('lock',16))</script><div><b>Area Administrator</b><br>Kelola akun guru pengampu.</div></div>
+      <div class="form-group"><label>Email Admin</label><input type="email" id="admin-email"></div>
+      <div class="form-group pw-toggle"><label>Password Admin</label><input type="password" id="admin-password"><button class="toggle-btn" onclick="togglePw('admin-password',this)" type="button"><script>document.write(svgIco('eye',16))</script></button></div>
       <button class="btn btn-primary btn-block btn-lg" onclick="loginAdmin()">Masuk sebagai Admin</button>
     </div>
   </div>
@@ -191,42 +125,18 @@
       <h1>Pendaftaran Siswa Baru</h1>
       <p>Gunakan Kode Kelas dari guru Anda</p>
     </div>
-    <div class="theme-wrap">
-      <div class="theme-toggle">
-        <button onclick="setTheme('light')" data-theme="light"><script>document.write(svgIco('sun',14))</script> Terang</button>
-        <button onclick="setTheme('dark')" data-theme="dark"><script>document.write(svgIco('moon',14))</script> Gelap</button>
-        <button onclick="setTheme('auto')" data-theme="auto"><script>document.write(svgIco('gear',14))</script> Auto</button>
-      </div>
-    </div>
-    <div class="alert alert-info">
-      <script>document.write(svgIco('doc',16))</script>
-      <div><b>Pendaftaran Siswa</b><br>Anda memerlukan <b>Kode Kelas</b> dari guru pengampu.</div>
-    </div>
-    <div class="form-group"><label>Kode Kelas</label>
-      <input type="text" id="daftar-code" placeholder="IXS-2025" class="input-code" maxlength="12" autocomplete="off">
-      <small class="hint">Dapatkan kode dari guru pengampu Anda</small>
-    </div>
-    <div class="form-group"><label>Nama Lengkap</label><input type="text" id="daftar-name" autocomplete="name"></div>
-    <div class="form-group"><label>Email</label>
-      <input type="email" id="daftar-email" placeholder="nama@siswa.smp.belajar.id" autocomplete="email">
-      <small class="hint">Email harus unik, belum pernah terdaftar</small>
-    </div>
-    <div class="form-group"><label>No. WhatsApp Aktif</label>
-      <input type="tel" id="daftar-phone" placeholder="08123456789" autocomplete="tel">
-      <small class="hint">Wajib — untuk notifikasi via WA</small>
-    </div>
-    <div class="form-group pw-toggle"><label>Password</label>
-      <input type="password" id="daftar-password" placeholder="Min 6 karakter" autocomplete="new-password">
-      <button class="toggle-btn" onclick="togglePw('daftar-password',this)" type="button" aria-label="Tampilkan password">
-        <script>document.write(svgIco('eye',16))</script>
-      </button>
-    </div>
-    <div class="form-group pw-toggle"><label>Konfirmasi Password</label>
-      <input type="password" id="daftar-confirm" placeholder="Ulangi password" autocomplete="new-password">
-      <button class="toggle-btn" onclick="togglePw('daftar-confirm',this)" type="button" aria-label="Tampilkan password">
-        <script>document.write(svgIco('eye',16))</script>
-      </button>
-    </div>
+    <div class="theme-wrap"><div class="theme-toggle">
+      <button onclick="setTheme('light')" data-theme="light"><script>document.write(svgIco('sun',14))</script> Terang</button>
+      <button onclick="setTheme('dark')" data-theme="dark"><script>document.write(svgIco('moon',14))</script> Gelap</button>
+      <button onclick="setTheme('auto')" data-theme="auto"><script>document.write(svgIco('gear',14))</script> Auto</button>
+    </div></div>
+    <div class="alert alert-info"><script>document.write(svgIco('doc',16))</script><div><b>Pendaftaran Siswa</b><br>Anda memerlukan <b>Kode Kelas</b> dari guru pengampu.</div></div>
+    <div class="form-group"><label>Kode Kelas</label><input type="text" id="daftar-code" placeholder="IXS-2025" class="input-code" maxlength="12"><small class="hint">Dapatkan kode dari guru pengampu Anda</small></div>
+    <div class="form-group"><label>Nama Lengkap</label><input type="text" id="daftar-name"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="daftar-email" placeholder="nama@siswa.smp.belajar.id"><small class="hint">Email harus unik</small></div>
+    <div class="form-group"><label>No. WhatsApp Aktif</label><input type="tel" id="daftar-phone" placeholder="08123456789"><small class="hint">Wajib — untuk notifikasi via WA</small></div>
+    <div class="form-group pw-toggle"><label>Password</label><input type="password" id="daftar-password" placeholder="Min 6 karakter"><button class="toggle-btn" onclick="togglePw('daftar-password',this)" type="button"><script>document.write(svgIco('eye',16))</script></button></div>
+    <div class="form-group pw-toggle"><label>Konfirmasi Password</label><input type="password" id="daftar-confirm" placeholder="Ulangi password"><button class="toggle-btn" onclick="togglePw('daftar-confirm',this)" type="button"><script>document.write(svgIco('eye',16))</script></button></div>
     <div class="form-group"><label>Peran dalam Pertunjukan</label><select id="daftar-role"></select></div>
     <button class="btn btn-primary btn-block btn-lg" onclick="registerSiswa()">Daftar Sekarang</button>
     <div class="divider-text">Sudah punya akun? <a class="link" onclick="showLoginPage()">Login di sini</a></div>
@@ -241,21 +151,13 @@
     </div>
     <div class="actions">
       <div class="theme-toggle">
-        <button onclick="setTheme('light')" data-theme="light" aria-label="Terang"><script>document.write(svgIco('sun',14))</script></button>
-        <button onclick="setTheme('dark')" data-theme="dark" aria-label="Gelap"><script>document.write(svgIco('moon',14))</script></button>
-        <button onclick="setTheme('auto')" data-theme="auto" aria-label="Auto"><script>document.write(svgIco('gear',14))</script></button>
+        <button onclick="setTheme('light')" data-theme="light"><script>document.write(svgIco('sun',14))</script></button>
+        <button onclick="setTheme('dark')" data-theme="dark"><script>document.write(svgIco('moon',14))</script></button>
+        <button onclick="setTheme('auto')" data-theme="auto"><script>document.write(svgIco('gear',14))</script></button>
       </div>
-      <button class="notif-btn hidden" id="notif-btn" onclick="openNotifPanel()">
-        <script>document.write(svgIco('bell',14))</script>
-        <span>Notifikasi</span>
-        <span class="notif-badge hidden" id="notif-badge">0</span>
-      </button>
-      <button class="btn btn-sm" id="btn-change-pw" onclick="openChangePassword()">
-        <script>document.write(svgIco('key',13))</script> Password
-      </button>
-      <button class="btn btn-sm" onclick="logout()">
-        <script>document.write(svgIco('out',13))</script> Logout
-      </button>
+      <button class="notif-btn hidden" id="notif-btn" onclick="openNotifPanel()"><script>document.write(svgIco('bell',14))</script><span>Notifikasi</span><span class="notif-badge hidden" id="notif-badge">0</span></button>
+      <button class="btn btn-sm" id="btn-change-pw" onclick="openChangePassword()"><script>document.write(svgIco('key',13))</script> Password</button>
+      <button class="btn btn-sm" onclick="logout()"><script>document.write(svgIco('out',13))</script> Logout</button>
     </div>
   </div>
   <div class="content" id="main-content"></div>
@@ -264,12 +166,8 @@
 <div class="notif-backdrop" id="notif-backdrop" onclick="closeNotifPanel()"></div>
 <div class="notif-panel" id="notif-panel">
   <div class="notif-panel-header">
-    <h3>
-      <script>document.write(svgIco('bell',16))</script> Notifikasi
-    </h3>
-    <button class="close-btn" onclick="closeNotifPanel()" aria-label="Tutup">
-      <script>document.write(svgIco('x',18))</script>
-    </button>
+    <h3><script>document.write(svgIco('bell',16))</script> Notifikasi</h3>
+    <button class="close-btn" onclick="closeNotifPanel()"><script>document.write(svgIco('x',18))</script></button>
   </div>
   <div class="notif-panel-body" id="notif-panel-body"></div>
 </div>
@@ -278,9 +176,7 @@
   <div class="modal-content">
     <div class="modal-header">
       <h3 id="modal-title">Modal</h3>
-      <button class="close-btn" onclick="closeModal()" aria-label="Tutup">
-        <script>document.write(svgIco('x',18))</script>
-      </button>
+      <button class="close-btn" onclick="closeModal()"><script>document.write(svgIco('x',18))</script></button>
     </div>
     <div id="modal-body"></div>
   </div>
