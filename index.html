@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5">
+<meta name="theme-color" content="#f8f9fa">
+<title>SP-PPT — Sistem Penilaian Proyek Produksi Teater</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="style.css">
+<script>
+  window.FIREBASE_CONFIG = {
+    apiKey: "GANTI_DENGAN_API_KEY_ANDA",
+    authDomain: "GANTI.firebaseapp.com",
+    projectId: "GANTI_PROJECT_ID",
+    storageBucket: "GANTI.appspot.com",
+    messagingSenderId: "GANTI_SENDER_ID",
+    appId: "GANTI_APP_ID"
+  };
+</script>
+</head>
+<body>
+
+<div id="loading-screen" class="loading-overlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <h3 id="loading-text">Menghubungkan ke server...</h3>
+    <p id="loading-sub">Memuat data dari cloud</p>
+  </div>
+</div>
+
+<div id="login-screen" class="container auth-container hidden">
+  <div class="auth-box">
+    <div class="brand">
+      <div class="brand-logos">
+        <img src="https://iili.io/nHsHgfe.png" alt="Logo 1" onerror="this.style.display='none'">
+        <img src="https://iili.io/nBiviCX.png" alt="Logo 2" onerror="this.style.display='none'">
+      </div>
+      <h1>Sistem Penilaian Proyek Produksi Teater</h1>
+      <p>SMP Negeri 10 Samarinda</p>
+    </div>
+    <div class="theme-wrap"><div class="theme-toggle">
+      <button onclick="setTheme('light')" data-theme="light">Terang</button>
+      <button onclick="setTheme('dark')" data-theme="dark">Gelap</button>
+      <button onclick="setTheme('auto')" data-theme="auto">Auto</button>
+    </div></div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchLoginTab('guru')" id="tab-login-guru">Guru</button>
+      <button class="tab" onclick="switchLoginTab('siswa')" id="tab-login-siswa">Siswa</button>
+      <button class="tab" onclick="switchLoginTab('admin')" id="tab-login-admin">Admin</button>
+    </div>
+    <div id="form-login-guru">
+      <div class="form-group"><label>Email Guru</label><input type="email" id="guru-email" placeholder="nama@guru.smp.belajar.id"></div>
+      <div class="form-group pw-toggle"><label>Password</label><input type="password" id="guru-password" placeholder="Password"><button class="toggle-btn" onclick="togglePw('guru-password',this)" type="button">👁</button></div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="loginGuru()">Masuk sebagai Guru</button>
+      <div class="center-mt"><button class="link" onclick="openForgotPassword('guru')">Lupa Password?</button></div>
+    </div>
+    <div id="form-login-siswa" class="hidden">
+      <div class="form-group"><label>Pilih Kelas</label><select id="siswa-kelas"><option value="">-- Pilih Kelas --</option></select></div>
+      <div class="form-group"><label>Email atau No. WhatsApp</label><input type="text" id="siswa-email" placeholder="nama@siswa.smp.belajar.id"><small class="hint">Bisa login pakai email atau nomor WA</small></div>
+      <div class="form-group pw-toggle"><label>Password</label><input type="password" id="siswa-password" placeholder="Password"><button class="toggle-btn" onclick="togglePw('siswa-password',this)" type="button">👁</button></div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="loginSiswa()">Masuk sebagai Siswa</button>
+      <div class="center-mt"><button class="link" onclick="openForgotPassword('siswa')">Lupa Password?</button></div>
+      <div class="divider-text">Belum punya akun? <a class="link" onclick="showRegisterPage()">Daftar di sini</a></div>
+    </div>
+    <div id="form-login-admin" class="hidden">
+      <div class="alert alert-info"><div><b>Area Administrator</b><br>Kelola akun guru pengampu.</div></div>
+      <div class="form-group"><label>Email Admin</label><input type="email" id="admin-email"></div>
+      <div class="form-group pw-toggle"><label>Password Admin</label><input type="password" id="admin-password"><button class="toggle-btn" onclick="togglePw('admin-password',this)" type="button">👁</button></div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="loginAdmin()">Masuk sebagai Admin</button>
+    </div>
+  </div>
+</div>
+
+<div id="register-screen" class="container auth-container hidden">
+  <div class="auth-box">
+    <div class="brand">
+      <div class="brand-logos">
+        <img src="https://iili.io/nHsHgfe.png" alt="Logo 1" onerror="this.style.display='none'">
+        <img src="https://iili.io/nBiviCX.png" alt="Logo 2" onerror="this.style.display='none'">
+      </div>
+      <h1>Pendaftaran Siswa Baru</h1>
+      <p>Gunakan Kode Kelas dari guru Anda</p>
+    </div>
+    <div class="theme-wrap"><div class="theme-toggle">
+      <button onclick="setTheme('light')" data-theme="light">Terang</button>
+      <button onclick="setTheme('dark')" data-theme="dark">Gelap</button>
+      <button onclick="setTheme('auto')" data-theme="auto">Auto</button>
+    </div></div>
+    <div class="alert alert-info"><div><b>Pendaftaran Siswa</b><br>Anda memerlukan <b>Kode Kelas</b> dari guru pengampu.</div></div>
+    <div class="form-group"><label>Kode Kelas</label><input type="text" id="daftar-code" placeholder="IXS-2025" class="input-code" maxlength="12"></div>
+    <div class="form-group"><label>Nama Lengkap</label><input type="text" id="daftar-name"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="daftar-email" placeholder="nama@siswa.smp.belajar.id"></div>
+    <div class="form-group"><label>No. WhatsApp Aktif</label><input type="tel" id="daftar-phone" placeholder="08123456789"><small class="hint">Wajib — untuk notifikasi via WA</small></div>
+    <div class="form-group pw-toggle"><label>Password</label><input type="password" id="daftar-password" placeholder="Min 6 karakter"><button class="toggle-btn" onclick="togglePw('daftar-password',this)" type="button">👁</button></div>
+    <div class="form-group pw-toggle"><label>Konfirmasi Password</label><input type="password" id="daftar-confirm" placeholder="Ulangi password"><button class="toggle-btn" onclick="togglePw('daftar-confirm',this)" type="button">👁</button></div>
+    <div class="form-group"><label>Peran dalam Pertunjukan</label><select id="daftar-role"></select></div>
+    <button class="btn btn-primary btn-block btn-lg" onclick="registerSiswa()">Daftar Sekarang</button>
+    <div class="divider-text">Sudah punya akun? <a class="link" onclick="showLoginPage()">Login di sini</a></div>
+  </div>
+</div>
+
+<div id="app-container" class="container hidden">
+  <div class="header">
+    <div>
+      <h2 id="header-title-text">Dashboard</h2>
+      <div class="user-info" id="user-info"></div>
+    </div>
+    <div class="actions">
+      <div class="theme-toggle">
+        <button onclick="setTheme('light')" data-theme="light">☀</button>
+        <button onclick="setTheme('dark')" data-theme="dark">☾</button>
+        <button onclick="setTheme('auto')" data-theme="auto">⚙</button>
+      </div>
+      <button class="notif-btn" id="notif-btn" onclick="openNotifPanel()"><svg class="ico" style="width:14px;height:14px;vertical-align:-2px;" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Notifikasi <span class="notif-badge hidden" id="notif-badge">0</span></button>
+      <button class="btn btn-sm" id="btn-change-pw" onclick="openChangePassword()">Password</button>
+      <button class="btn btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </div>
+  <div class="content" id="main-content"></div>
+</div>
+
+<div class="notif-backdrop" id="notif-backdrop" onclick="closeNotifPanel()"></div>
+<div class="notif-panel" id="notif-panel">
+  <div class="notif-panel-header">
+    <h3>Notifikasi</h3>
+    <button class="close-btn" onclick="closeNotifPanel()">×</button>
+  </div>
+  <div class="notif-panel-body" id="notif-panel-body"></div>
+</div>
+
+<div id="modal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title">Modal</h3>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script src="extras.js"></script>
+</body>
+</html>
