@@ -1,7 +1,7 @@
 /* ============================================================
    fix.js — KONSOLIDASI FINAL
    A. Fix SVG ico2/ico size
-   B. Brand banner sebagai HEADER UTAMA (di atas .header)
+   B. Brand sebagai HEADER STICKY di atas dashboard
    C. Auto-shrink icon di mobile
    Load PALING AKHIR setelah semua script lain
    ============================================================ */
@@ -40,63 +40,58 @@ console.log('[fix] Bagian A — ico2 & ico size diperbaiki');
 
 
 /* ============================================================
-   BAGIAN B — BRAND BANNER SEBAGAI HEADER UTAMA
+   BAGIAN B — BRAND HEADER STICKY
    ============================================================ */
-
-function brandBannerHTML(){
-  return '<div class="brand-banner">'+
-    '<div class="brand-logos-small">'+
+function brandHeaderHTML(){
+  return '<div class="app-brand-header">'+
+    '<div class="app-brand-logos">'+
       '<img src="https://iili.io/nHsHgfe.png" alt="Logo Mapel" onerror="this.style.display=\'none\'">'+
       '<img src="https://iili.io/nBiviCX.png" alt="Logo SMPN 10" onerror="this.style.display=\'none\'">'+
     '</div>'+
-    '<div class="brand-text-small">'+
+    '<div class="app-brand-text">'+
       '<h1>Sistem Penilaian Proyek Produksi Teater</h1>'+
       '<p>SMP Negeri 10 Samarinda</p>'+
     '</div>'+
   '</div>';
 }
-window.brandBannerHTML = brandBannerHTML;
+window.brandHeaderHTML = brandHeaderHTML;
+
+/* alias lama supaya tidak break kalau ada referensi lain */
+window.brandBannerHTML = brandHeaderHTML;
 
 function injectBrand(){
   var ac = document.getElementById('app-container');
   if(!ac) return;
-  if(ac.querySelector('.brand-banner')){
+  if(ac.querySelector('.app-brand-header')){
     attachStickyObserver();
     return;
   }
-  var header = ac.querySelector('.header');
-  if(header){
-    header.insertAdjacentHTML('beforebegin', brandBannerHTML());
-  } else {
-    ac.insertAdjacentHTML('afterbegin', brandBannerHTML());
-  }
+  /* Insert sebagai ANAK PERTAMA #app-container → di atas .header */
+  ac.insertAdjacentHTML('afterbegin', brandHeaderHTML());
   attachStickyObserver();
 }
 
 function attachStickyObserver(){
-  var banner = document.querySelector('#app-container .brand-banner');
-  if(!banner) return;
-
-  if(window.__bannerScroll){
-    window.removeEventListener('scroll', window.__bannerScroll);
-    window.__bannerScroll = null;
+  var h = document.querySelector('#app-container .app-brand-header');
+  if(!h) return;
+  if(window.__brandScroll){
+    window.removeEventListener('scroll', window.__brandScroll);
+    window.__brandScroll = null;
   }
-
   var onScroll = function(){
     if(window.scrollY > 4){
-      banner.classList.add('is-stuck');
+      h.classList.add('is-stuck');
     } else {
-      banner.classList.remove('is-stuck');
+      h.classList.remove('is-stuck');
     }
   };
-
-  window.__bannerScroll = onScroll;
+  window.__brandScroll = onScroll;
   window.addEventListener('scroll', onScroll, {passive:true});
   setTimeout(onScroll, 100);
 }
 window.attachStickyObserver = attachStickyObserver;
 
-/* Wrap render dashboard supaya brand selalu ter-inject */
+/* Wrap render supaya brand selalu ter-inject */
 function wrapRender(fnName){
   var _orig = window[fnName];
   if(typeof _orig !== 'function') return;
@@ -110,7 +105,6 @@ function wrapRender(fnName){
 ['renderGuruDashboard','renderSiswaDashboard','renderAdminDashboard',
  'viewClass','renderRecap','renderStageManagement'].forEach(wrapRender);
 
-/* Inject juga saat showApp (login) — supaya banner muncul duluan */
 var _origShowApp = window.showApp;
 if(typeof _origShowApp === 'function'){
   window.showApp = function(){
@@ -120,7 +114,7 @@ if(typeof _origShowApp === 'function'){
   };
 }
 
-console.log('[fix] Bagian B — Brand banner header aktif');
+console.log('[fix] Bagian B — Brand header sticky aktif');
 
 
 /* ============================================================
