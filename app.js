@@ -1,10 +1,9 @@
 /* ============================================================
-   SP-PPT app.js — FULL FIX
-   v3: Teacher-scoped classes, Firestore-safe writes, no demo,
-       notif for all roles, bug fixes
+   SP-PPT app.js — FULL FIX v3
+   + Auto-hapus kelas demo, teacher-scoped, sanitize Firestore,
+   + Broadcast recipientIds, panduan rubrik penilaian
    ============================================================ */
 
-/* ===== FORCE HIDE LOADING ===== */
 (function(){
   var hidden=false;
   function forceHide(){
@@ -28,7 +27,7 @@ function showErrorBanner(msg){
   }catch(e){}
 }
 
-/* ===== ICON SYSTEM (SVG) ===== */
+/* ===== ICON SYSTEM ===== */
 function ico(n,s){const p={
   user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
   users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -89,14 +88,13 @@ const ADMIN_ACCOUNT={email:'fikri.yassaar15@guru.smp.belajar.id',password:'#Smpn
 const DEFAULT_TEACHERS=[{email:'fikri.yassaar15@guru.smp.belajar.id',password:'#Smpn10smd',name:'Fikri Yassaar Arrazaq, S.Sn.'}];
 const DEFAULT_STUDENT_PASSWORD='#Smpn10smd';
 
-/* [FIX #3] DEMO DATA DIHAPUS — tidak ada seedAllDemoData */
-
 const DEFAULT_STAGES=[
   {id:'stage1',name:'Perencanaan',subtitle:'Pra-Produksi',description:'Penyusunan konsep, jadwal, RAB, dan pembagian tugas.',weight:20,longDesc:'Tahap perencanaan sebelum latihan dimulai.'},
   {id:'stage2',name:'Pelaksanaan',subtitle:'Produksi & Latihan',description:'Latihan rutin, eksekusi tugas, dan koordinasi tim.',weight:35,longDesc:'Tahap terlama dalam proyek. Termasuk absensi 15%.'},
-  {id:'stage3',name:'Pertunjukan',subtitle:'Show Time',description:'Penampilan panggung pada hari-H pertunjukan.',weight:35,longDesc:'Hari puncak!'},
+  {id:'stage3',name:'Pertunjukan',subtitle:'Show Time',description:'Penampilan panggung pada hari-H pertunjukan.',weight:35,longDesc:'Hari puncak pertunjukan teater.'},
   {id:'stage4',name:'Evaluasi',subtitle:'Pasca-Produksi',description:'Laporan, dokumentasi, dan refleksi akhir.',weight:10,longDesc:'Tahap akhir setelah pertunjukan.'}
 ];
+
 const ROLES={
   pimpinan_produksi:{label:'Pimpinan Produksi',team:'produksi'},sekretaris:{label:'Sekretaris',team:'produksi'},bendahara:{label:'Bendahara',team:'produksi'},
   koor_publikasi:{label:'Koor. Publikasi & Dokumentasi',team:'produksi'},koor_perlengkapan:{label:'Koor. Perlengkapan & Peralatan',team:'produksi'},koor_akomodasi:{label:'Koor. Akomodasi & Transportasi',team:'produksi'},
@@ -105,6 +103,7 @@ const ROLES={
   koor_panggung:{label:'Koor. Tata Pentas/Panggung',team:'artistik'},koor_musik:{label:'Koor. Musik & Suara',team:'artistik'},koor_busana:{label:'Koor. Busana & Kostum',team:'artistik'},koor_rias:{label:'Koor. Rias',team:'artistik'},koor_cahaya:{label:'Koor. Cahaya',team:'artistik'},
   anggota_panggung:{label:'Anggota Panggung',team:'artistik'},anggota_musik:{label:'Anggota Musik',team:'artistik'},anggota_busana:{label:'Anggota Busana',team:'artistik'},anggota_rias:{label:'Anggota Rias',team:'artistik'},anggota_cahaya:{label:'Anggota Cahaya',team:'artistik'}
 };
+
 const RUBRICS={
   pimpinan_produksi:[{id:'pp1',name:'Perencanaan & Pengelolaan Produksi',desc:'Rencana sangat detail',weight:20,scale:'4=Sebelum deadline · 3=Tepat · 2=Mundur · 1=Gagal'},{id:'pp2',name:'Seleksi & Pengaturan Tim',desc:'Penempatan sesuai kemampuan',weight:15,scale:'4=100% pas · 3=Sesuai · 2=Salah tempat · 1=Asal'},{id:'pp3',name:'Manajemen Anggaran',desc:'Efisien, transparan',weight:15,scale:'4=Efisien · 3=Sesuai · 2=Kurang rapi · 1=Tidak jelas'},{id:'pp4',name:'Koordinasi Lintas Divisi',desc:'Produksi & Artistik harmonis',weight:20,scale:'4=Harmonis · 3=Baik · 2=Kaku · 1=Tidak ada'},{id:'pp5',name:'Penyelesaian Masalah',desc:'Solusi cepat & tepat',weight:15,scale:'4=Cepat · 3=Cepat · 2=Lambat · 1=Tidak mampu'},{id:'pp6',name:'Evaluasi & Pelaporan',desc:'Laporan lengkap',weight:15,scale:'4=Lengkap · 3=Lengkap · 2=Kurang · 1=Tidak ada'}],
   sekretaris:[{id:'sk1',name:'Dokumentasi & Arsip',desc:'Arsip rapi & lengkap',weight:20,scale:'4=Rapi & lengkap · 3=Rapi · 2=Berantakan · 1=Hilang'},{id:'sk2',name:'Penjadwalan',desc:'Jadwal jauh hari',weight:20,scale:'4=Jauh hari · 3=Tepat · 2=Mendadak · 1=Tidak ada'},{id:'sk3',name:'Korespondensi & Komunikasi',desc:'Informasi jelas',weight:20,scale:'4=Jelas · 3=Tepat · 2=Terlambat · 1=Salah'},{id:'sk4',name:'Administrasi Anggaran',desc:'Sangat teliti',weight:15,scale:'4=Sangat teliti · 3=Sesuai · 2=Kurang · 1=Tidak'},{id:'sk5',name:'Penyusunan Laporan',desc:'Laporan sangat rapi',weight:25,scale:'4=H+1 rapi · 3=H+3 · 2=H+7 · 1=Tidak ada'}],
@@ -122,7 +121,6 @@ function canEvaluate(e,t){return getEvaluatorRoles(t).indexOf(e)>=0;}
 function canGuruEvaluate(t){return ['pimpinan_produksi','sutradara'].indexOf(t)>=0;}
 var KETUA_ROLES=['pimpinan_produksi','sutradara'];
 
-/* ===== DIVISIONS ===== */
 const DIVISIONS={
   produksi:{label:'Tim Produksi',roles:['pimpinan_produksi','sekretaris','bendahara','koor_publikasi','koor_perlengkapan','koor_akomodasi','anggota_publikasi','anggota_perlengkapan','anggota_akomodasi']},
   artistik:{label:'Tim Artistik',roles:['sutradara','asisten_sutradara','pemain','koor_panggung','koor_musik','koor_busana','koor_rias','koor_cahaya','anggota_panggung','anggota_musik','anggota_busana','anggota_rias','anggota_cahaya']}
@@ -131,7 +129,7 @@ function getDivisionOfRole(role){for(var d in DIVISIONS){if(DIVISIONS[d].roles.i
 window.DIVISIONS=DIVISIONS;
 window.getDivisionOfRole=getDivisionOfRole;
 
-/* ===== FIREBASE INIT ===== */
+/* ===== FIREBASE ===== */
 var firebaseReady=false, fb=null, firebaseError='';
 try{
   if(typeof firebase==='undefined'){firebaseError='Firebase SDK tidak termuat';throw new Error(firebaseError);}
@@ -147,32 +145,29 @@ try{
 function uid(){return 'id_'+Math.random().toString(36).substr(2,9)+Date.now().toString(36);}
 function genClassCode(n){var c=(n||'KLS').replace(/[^A-Z0-9]/gi,'').toUpperCase().substring(0,4);return c+'-'+Math.floor(1000+Math.random()*9000);}
 
-/* ============================================================
-   [FIX #2] SANITIZE — buang semua `undefined` sebelum kirim ke Firestore
-   ============================================================ */
+/* ===== SANITIZE ===== */
 function sanitizeFirestore(obj){
-  if(obj===undefined) return null;
-  if(obj===null) return null;
-  if(typeof obj!=='object') return obj;
-  if(Array.isArray(obj)) return obj.map(function(v){return sanitizeFirestore(v);}).filter(function(v){return v!==undefined;});
+  if(obj===undefined)return null;
+  if(obj===null)return null;
+  if(typeof obj!=='object')return obj;
+  if(Array.isArray(obj))return obj.map(sanitizeFirestore).filter(function(v){return v!==undefined;});
   var clean={};
   for(var k in obj){
-    if(!Object.prototype.hasOwnProperty.call(obj,k)) continue;
+    if(!Object.prototype.hasOwnProperty.call(obj,k))continue;
     var v=obj[k];
-    if(v===undefined) continue; // ← KUNCI FIX: buang field undefined
+    if(v===undefined)continue;
     var cv=sanitizeFirestore(v);
-    if(cv!==undefined) clean[k]=cv;
+    if(cv!==undefined)clean[k]=cv;
   }
   return clean;
 }
 
-/* ===== DB STATE ===== */
 var DB={teachers:[],classes:[],evaluations:{},deadlines:{},activeStages:{},notifications:[],stages:JSON.parse(JSON.stringify(DEFAULT_STAGES)),checklists:{},waLogs:[],meetings:{},activityLogs:[]};
 var currentUser=null;
 var unsubs=[];
 var resetCodes={};
 
-/* ===== FIRESTORE WRITE HELPERS (dengan sanitize) ===== */
+/* ===== FIRESTORE WRITE ===== */
 function fbSetTeacher(t){if(!firebaseReady)return Promise.resolve();return fb.collection('teachers').doc(t.email.toLowerCase()).set(sanitizeFirestore(t),{merge:true});}
 function fbDelTeacher(email){if(!firebaseReady)return Promise.resolve();return fb.collection('teachers').doc(email.toLowerCase()).delete();}
 function fbSetClass(c){if(!firebaseReady)return Promise.resolve();var o=Object.assign({},c);delete o._id;return fb.collection('classes').doc(c.id).set(sanitizeFirestore(o),{merge:false});}
@@ -190,37 +185,31 @@ function saveSession(){if(!currentUser)return;try{localStorage.setItem(SESSION_K
 function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
 function getSession(){try{var s=localStorage.getItem(SESSION_KEY);return s?JSON.parse(s):null;}catch(e){return null;}}
 
-/* ============================================================
-   [FIX #1] myClasses — filter kelas sesuai pemilik (guru)
-   ============================================================ */
+/* ===== TEACHER-SCOPED CLASSES ===== */
 function myClasses(){
-  if(!currentUser) return [];
-  if(currentUser.type==='admin') return DB.classes.slice();
+  if(!currentUser)return[];
+  if(currentUser.type==='admin')return DB.classes.slice();
   if(currentUser.type==='guru'){
     var email=String(currentUser.email||'').toLowerCase();
-    return DB.classes.filter(function(c){
-      return c.teacherEmail && String(c.teacherEmail).toLowerCase()===email;
-    });
+    return DB.classes.filter(function(c){return c.teacherEmail && String(c.teacherEmail).toLowerCase()===email;});
   }
-  if(currentUser.type==='siswa'){
-    return DB.classes.filter(function(c){return c.id===currentUser.classId;});
-  }
-  return [];
+  if(currentUser.type==='siswa')return DB.classes.filter(function(c){return c.id===currentUser.classId;});
+  return[];
 }
 function ownsClass(cid){
-  if(!currentUser) return false;
-  if(currentUser.type==='admin') return true;
+  if(!currentUser)return false;
+  if(currentUser.type==='admin')return true;
   if(currentUser.type==='guru'){
     var c=DB.classes.find(function(x){return x.id===cid;});
     return !!(c && c.teacherEmail && String(c.teacherEmail).toLowerCase()===String(currentUser.email||'').toLowerCase());
   }
-  if(currentUser.type==='siswa') return currentUser.classId===cid;
+  if(currentUser.type==='siswa')return currentUser.classId===cid;
   return false;
 }
 window.myClasses=myClasses;
 window.ownsClass=ownsClass;
 
-/* ===== REALTIME SUBSCRIBE ===== */
+/* ===== REALTIME ===== */
 function debouncedRender(){
   if(window._renderTimer)clearTimeout(window._renderTimer);
   window._renderTimer=setTimeout(function(){
@@ -233,20 +222,9 @@ function debouncedRender(){
     }catch(e){console.error('Render:',e);}
   },350);
 }
-
 function logActivity(type,message,meta){
-  /* [FIX #2] meta di-sanitize sebelum disimpan */
-  var safeMeta = sanitizeFirestore(meta||{});
-  var a={
-    id:uid(),
-    type:type||'info',
-    message:message||'',
-    meta:safeMeta,
-    classId:(currentUser&&currentUser.classId)||(safeMeta&&safeMeta.classId)||'',
-    userId:(currentUser&&(currentUser.studentId||currentUser.email))||'system',
-    userName:currentUser?currentUser.name:'System',
-    createdAt:Date.now()
-  };
+  var safeMeta=sanitizeFirestore(meta||{});
+  var a={id:uid(),type:type||'info',message:message||'',meta:safeMeta,classId:(currentUser&&currentUser.classId)||(safeMeta&&safeMeta.classId)||'',userId:(currentUser&&(currentUser.studentId||currentUser.email))||'system',userName:currentUser?currentUser.name:'System',createdAt:Date.now()};
   fbAddActivity(a);
 }
 
@@ -259,18 +237,15 @@ function subscribeAll(){
     if(currentUser&&currentUser.type==='admin')debouncedRender();
   },function(e){console.error('teachers:',e.message);}));
 
-  /* [FIX #3] Tidak ada seeding demo kelas */
   unsubs.push(fb.collection('classes').onSnapshot(function(snap){
     DB.classes=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
-    /* Auto-hapus kelas lama tanpa teacherEmail (mis. IX-S demo) */
+    /* Auto-hapus kelas lama tanpa teacherEmail */
     DB.classes.forEach(function(c){
       if(!c.teacherEmail && (c.name==='IX-S' || c.code==='IXS-2025')){
-        console.log('Hapus kelas lama:', c.name, c.id);
+        console.log('Hapus kelas lama:',c.name,c.id);
         fb.collection('classes').doc(c.id).delete().catch(function(){});
       }
     });
-    refreshClassDropdown();
-    DB.classes=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
     refreshClassDropdown();
     if(currentUser&&currentUser.type==='siswa'){
       var c=DB.classes.find(function(x){return x.id===currentUser.classId;});
@@ -302,7 +277,7 @@ function subscribeAll(){
     DB.activeStages=a;if(currentUser)debouncedRender();
   },function(e){console.error('activeStages:',e.message);}));
 
-  unsubs.push(fb.collection('notifications').orderBy('createdAt','desc').limit(100).onSnapshot(function(snap){
+  unsubs.push(fb.collection('notifications').orderBy('createdAt','desc').limit(200).onSnapshot(function(snap){
     DB.notifications=snap.docs.map(function(d){return d.data();});
     if(currentUser){
       updateNotifBadge();
@@ -345,7 +320,7 @@ function getStage(id){return DB.stages.find(function(s){return s.id===id;});}
 function getTotalWeight(){return DB.stages.reduce(function(s,x){return s+Number(x.weight||0);},0)||1;}
 function isStageActive(c,s){return DB.activeStages[c]&&DB.activeStages[c][s]===true;}
 function fmtDate(ts){return new Date(ts).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
-function fmtDateShort(s){if(!s)return '-';return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});}
+function fmtDateShort(s){if(!s)return'-';return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});}
 function isOverdue(s){if(!s)return false;var d=new Date(s);d.setHours(23,59,59,999);return Date.now()>d.getTime();}
 function getDeadline(c,s){return DB.deadlines[c]&&DB.deadlines[c][s]?DB.deadlines[c][s]:null;}
 function isStageDoneFor(c,t,e,s){var x=DB.evaluations[c]&&DB.evaluations[c][t]&&DB.evaluations[c][t][e]&&DB.evaluations[c][t][e][s];return x&&Object.keys(x).length>0;}
@@ -363,40 +338,30 @@ function getOverallProgress(c,e){
 function hasUserAssessed(c,t,e){var v=DB.evaluations[c]&&DB.evaluations[c][t]&&DB.evaluations[c][t][e];return v&&Object.keys(v).length>0;}
 function countAssessors(c,t){var v=DB.evaluations[c]&&DB.evaluations[c][t];if(!v)return 0;var n=0;for(var k in v){if(Object.keys(v[k]).length>0)n++;}return n;}
 
-/* ============================================================
-   [FIX #1 + #4] NOTIFICATIONS — filter per guru + tampil utk semua role
-   ============================================================ */
+/* ===== NOTIFICATIONS ===== */
 function getNotifsFor(u){
   if(!u)return[];
   if(u.type==='siswa'){
     return DB.notifications.filter(function(n){
-      if(n.classId!==u.classId) return false;
-      if(n.toId==='all') return true;
-      if(n.toId===u.studentId) return true;
-      if(n.recipientIds && n.recipientIds.indexOf(u.studentId)>=0) return true;
+      if(n.classId!==u.classId)return false;
+      if(n.toId==='all')return true;
+      if(n.toId===u.studentId)return true;
+      if(n.recipientIds && n.recipientIds.indexOf(u.studentId)>=0)return true;
       return false;
     });
   }
   if(u.type==='guru'){
-    /* [FIX #1] hanya notifikasi dari kelas milik guru ini */
     var myIds=myClasses().map(function(c){return c.id;});
-    return DB.notifications.filter(function(n){
-      if(!n.classId) return false;
-      return myIds.indexOf(n.classId)>=0;
-    });
+    return DB.notifications.filter(function(n){if(!n.classId)return false;return myIds.indexOf(n.classId)>=0;});
   }
-  if(u.type==='admin'){
-    /* Admin melihat semua notifikasi */
-    return DB.notifications.slice();
-  }
+  if(u.type==='admin')return DB.notifications.slice();
   return[];
 }
-function getUserKey(){if(!currentUser)return null;if(currentUser.type==='siswa')return currentUser.studentId;if(currentUser.type==='guru')return 'guru:'+String(currentUser.email||'').toLowerCase();return 'admin';}
+function getUserKey(){if(!currentUser)return null;if(currentUser.type==='siswa')return currentUser.studentId;if(currentUser.type==='guru')return'guru:'+String(currentUser.email||'').toLowerCase();return'admin';}
 function getUnreadCount(){return getNotifsFor(currentUser).filter(function(n){return !(n.readBy&&n.readBy.indexOf(getUserKey())>=0);}).length;}
 function updateNotifBadge(){
   var b=document.getElementById('notif-btn'),bd=document.getElementById('notif-badge');
   if(!b||!bd)return;
-  /* [FIX #4] Semua role (siswa/guru/admin) menampilkan tombol notifikasi */
   if(!currentUser){b.classList.add('hidden');return;}
   b.classList.remove('hidden');
   var u=getUnreadCount();
@@ -423,52 +388,12 @@ function markTaskDone(id){var n=DB.notifications.find(function(x){return x.id===
 function deleteNotif(id){if(!confirm('Hapus?'))return;fbDelNotif(id);}
 
 /* ===== LOGIN/REGISTER ===== */
-function refreshClassDropdown(){
-  var s=document.getElementById('siswa-kelas');if(!s)return;
-  s.innerHTML='<option value="">-- Pilih Kelas --</option>';
-  DB.classes.forEach(function(c){s.innerHTML+='<option value="'+c.id+'">'+c.name+'</option>';});
-}
-function refreshDaftarRoles(){
-  var s=document.getElementById('daftar-role');if(!s)return;
-  var o='<option value="">-- Pilih Peran --</option><optgroup label="— Tim Produksi —">';
-  ['pimpinan_produksi','sekretaris','bendahara','koor_publikasi','koor_perlengkapan','koor_akomodasi','anggota_publikasi','anggota_perlengkapan','anggota_akomodasi'].forEach(function(k){o+='<option value="'+k+'">'+ROLES[k].label+'</option>';});
-  o+='</optgroup><optgroup label="— Tim Artistik —">';
-  ['sutradara','asisten_sutradara','pemain','koor_panggung','koor_musik','koor_busana','koor_rias','koor_cahaya','anggota_panggung','anggota_musik','anggota_busana','anggota_rias','anggota_cahaya'].forEach(function(k){o+='<option value="'+k+'">'+ROLES[k].label+'</option>';});
-  o+='</optgroup>';s.innerHTML=o;
-}
+function refreshClassDropdown(){var s=document.getElementById('siswa-kelas');if(!s)return;s.innerHTML='<option value="">-- Pilih Kelas --</option>';DB.classes.forEach(function(c){s.innerHTML+='<option value="'+c.id+'">'+c.name+'</option>';});}
+function refreshDaftarRoles(){var s=document.getElementById('daftar-role');if(!s)return;var o='<option value="">-- Pilih Peran --</option><optgroup label="— Tim Produksi —">';['pimpinan_produksi','sekretaris','bendahara','koor_publikasi','koor_perlengkapan','koor_akomodasi','anggota_publikasi','anggota_perlengkapan','anggota_akomodasi'].forEach(function(k){o+='<option value="'+k+'">'+ROLES[k].label+'</option>';});o+='</optgroup><optgroup label="— Tim Artistik —">';['sutradara','asisten_sutradara','pemain','koor_panggung','koor_musik','koor_busana','koor_rias','koor_cahaya','anggota_panggung','anggota_musik','anggota_busana','anggota_rias','anggota_cahaya'].forEach(function(k){o+='<option value="'+k+'">'+ROLES[k].label+'</option>';});o+='</optgroup>';s.innerHTML=o;}
 
-function loginGuru(){
-  var e=document.getElementById('guru-email').value.trim().toLowerCase();
-  var p=document.getElementById('guru-password').value;
-  var t=DB.teachers.find(function(x){return x.email&&x.email.toLowerCase()===e&&x.password===p;});
-  if(t){currentUser={type:'guru',email:t.email,name:t.name};saveSession();showApp();}
-  else alert('Email atau password salah!');
-}
-function loginSiswa(){
-  var cid=document.getElementById('siswa-kelas').value;
-  var idInput=document.getElementById('siswa-email').value.trim();
-  var p=document.getElementById('siswa-password').value;
-  if(!cid||!idInput||!p){alert('Lengkapi!');return;}
-  var c=DB.classes.find(function(x){return x.id===cid;});
-  if(!c){alert('Kelas tidak ditemukan!');return;}
-  var isEmail=idInput.indexOf('@')>=0,emailLower=idInput.toLowerCase(),phoneClean=idInput.replace(/\D/g,'');
-  var s=c.students.find(function(x){
-    if(x.password!==p)return false;
-    if(isEmail)return x.email&&x.email.toLowerCase()===emailLower;
-    return x.phone&&x.phone.replace(/\D/g,'')===phoneClean;
-  });
-  if(!s){alert('Email/WA atau password salah!');return;}
-  currentUser={type:'siswa',classId:cid,studentId:s.id,name:s.name,role:s.role,phone:s.phone||''};
-  saveSession();showApp();
-}
-function loginAdmin(){
-  var e=document.getElementById('admin-email').value.trim().toLowerCase();
-  var p=document.getElementById('admin-password').value;
-  if(e===ADMIN_ACCOUNT.email.toLowerCase()&&p===ADMIN_ACCOUNT.password){
-    currentUser={type:'admin',email:ADMIN_ACCOUNT.email,name:ADMIN_ACCOUNT.name};
-    saveSession();showApp();
-  } else alert('Email atau password admin salah!');
-}
+function loginGuru(){var e=document.getElementById('guru-email').value.trim().toLowerCase();var p=document.getElementById('guru-password').value;var t=DB.teachers.find(function(x){return x.email&&x.email.toLowerCase()===e&&x.password===p;});if(t){currentUser={type:'guru',email:t.email,name:t.name};saveSession();showApp();}else alert('Email atau password salah!');}
+function loginSiswa(){var cid=document.getElementById('siswa-kelas').value;var idInput=document.getElementById('siswa-email').value.trim();var p=document.getElementById('siswa-password').value;if(!cid||!idInput||!p){alert('Lengkapi!');return;}var c=DB.classes.find(function(x){return x.id===cid;});if(!c){alert('Kelas tidak ditemukan!');return;}var isEmail=idInput.indexOf('@')>=0,emailLower=idInput.toLowerCase(),phoneClean=idInput.replace(/\D/g,'');var s=c.students.find(function(x){if(x.password!==p)return false;if(isEmail)return x.email&&x.email.toLowerCase()===emailLower;return x.phone&&x.phone.replace(/\D/g,'')===phoneClean;});if(!s){alert('Email/WA atau password salah!');return;}currentUser={type:'siswa',classId:cid,studentId:s.id,name:s.name,role:s.role,phone:s.phone||''};saveSession();showApp();}
+function loginAdmin(){var e=document.getElementById('admin-email').value.trim().toLowerCase();var p=document.getElementById('admin-password').value;if(e===ADMIN_ACCOUNT.email.toLowerCase()&&p===ADMIN_ACCOUNT.password){currentUser={type:'admin',email:ADMIN_ACCOUNT.email,name:ADMIN_ACCOUNT.name};saveSession();showApp();}else alert('Email atau password admin salah!');}
 
 function registerSiswa(){
   var code=document.getElementById('daftar-code').value.trim().toUpperCase();
@@ -493,12 +418,7 @@ function registerSiswa(){
   var ns={id:uid(),name:name,email:email,phone:phone,password:pw,role:role,registeredAt:Date.now()};
   var newStudents=cls.students.concat([ns]);
   fbSetClass(Object.assign({},cls,{students:newStudents})).then(function(){
-    fbAddNotif({
-      id:uid(),classId:cls.id,fromId:ns.id,fromName:name,fromType:'siswa',
-      toId:'guru',type:'info',title:'Siswa Baru',
-      message:name+' ('+(ROLES[role]?ROLES[role].label:role)+') mendaftar di '+cls.name,
-      createdAt:Date.now(),readBy:[],doneBy:[]
-    });
+    fbAddNotif({id:uid(),classId:cls.id,fromId:ns.id,fromName:name,fromType:'siswa',toId:'guru',type:'info',title:'Siswa Baru',message:name+' ('+(ROLES[role]?ROLES[role].label:role)+') mendaftar di '+cls.name,createdAt:Date.now(),readBy:[],doneBy:[]});
     logActivity('student_register',name+' mendaftar sebagai '+(ROLES[role]?ROLES[role].label:role),{classId:cls.id});
     alert('Berhasil!\n\nNama: '+name+'\nKelas: '+cls.name);
     ['daftar-code','daftar-name','daftar-email','daftar-password','daftar-confirm','daftar-role','daftar-phone'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
@@ -507,16 +427,7 @@ function registerSiswa(){
     showLoginPage();switchLoginTab('siswa');
   });
 }
-
-function logout(){
-  currentUser=null;clearSession();
-  document.getElementById('app-container').classList.add('hidden');
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('register-screen').classList.add('hidden');
-  ['guru-email','guru-password','siswa-email','siswa-password','admin-email','admin-password'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
-  closeNotifPanel();refreshClassDropdown();switchLoginTab('guru');
-}
-
+function logout(){currentUser=null;clearSession();document.getElementById('app-container').classList.add('hidden');document.getElementById('login-screen').classList.remove('hidden');document.getElementById('register-screen').classList.add('hidden');['guru-email','guru-password','siswa-email','siswa-password','admin-email','admin-password'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});closeNotifPanel();refreshClassDropdown();switchLoginTab('guru');}
 function showApp(){
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('register-screen').classList.add('hidden');
@@ -546,9 +457,7 @@ function saveChangePassword(){var o=document.getElementById('cp-old').value,n=do
 function openModal(t,b){document.getElementById('modal-title').innerHTML=t;document.getElementById('modal-body').innerHTML=b;document.getElementById('modal').classList.remove('hidden');}
 function closeModal(){document.getElementById('modal').classList.add('hidden');}
 
-/* ============================================================
-   [FIX #4] ADMIN DASHBOARD — notif icon tetap muncul
-   ============================================================ */
+/* ===== ADMIN DASHBOARD ===== */
 function renderAdminDashboard(){
   document.getElementById('header-title-text').innerHTML=ico('settings')+' Dashboard Administrator';
   var h='<div class="alert alert-info">'+ico('shield')+'<div><b>Area Administrator</b><br>Kelola akun guru pengampu.</div></div>';
@@ -563,13 +472,12 @@ function renderAdminDashboard(){
     var isD=DEFAULT_TEACHERS.some(function(d){return d.email.toLowerCase()===t.email.toLowerCase();});
     h+='<div class="teacher-list-item"><div class="info">'+ico('user','lg')+'<div><strong>'+t.name+'</strong><small>'+t.email+'</small></div></div><div class="action-row">'+(isD?'<span class="badge badge-primary">'+ico('shield')+' Utama</span>':'<button class="btn btn-sm" onclick="openEditTeacherModal(\''+t.email+'\')">'+ico('edit')+'</button><button class="btn btn-sm btn-danger" onclick="deleteTeacher(\''+t.email+'\')">'+ico('trash')+'</button>')+'</div></div>';
   });
-  /* Ringkasan kelas per guru */
   h+='<h3 style="color:var(--text-strong);margin:20px 0 12px;font-size:15px;font-weight:700;">'+ico('school')+' Kelas Terdaftar</h3>';
   if(DB.classes.length===0){h+='<div class="empty-state">'+ico('school','lg')+'<p>Belum ada kelas.</p></div>';}
   else{
     h+='<div class="table-wrap"><table><thead><tr><th>Kelas</th><th>Kode</th><th>Pemilik (Guru)</th><th>Siswa</th></tr></thead><tbody>';
     DB.classes.forEach(function(c){
-      h+='<tr><td><b>'+c.name+'</b></td><td><code>'+c.code+'</code></td><td>'+(c.teacherEmail||'<span class="badge badge-warning">Belum terassign</span>')+'</td><td>'+(c.students?c.students.length:0)+'</td></tr>';
+      h+='<tr><td><b>'+c.name+'</b></td><td><code>'+c.code+'</code></td><td>'+(c.teacherEmail||'<span class="badge badge-warning">Belum terassign</span>')+'</td><td>'+((c.students||[]).length)+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }
@@ -583,9 +491,7 @@ function openEditTeacherModal(email){var t=DB.teachers.find(function(x){return x
 function updateTeacher(oldEmail){var n=document.getElementById('t-name').value.trim(),e=document.getElementById('t-email').value.trim().toLowerCase(),p=document.getElementById('t-password').value;if(!n||!e){alert('Lengkapi!');return;}if(DB.teachers.some(function(t){return t.email.toLowerCase()===e&&t.email.toLowerCase()!==oldEmail.toLowerCase();})){alert('Email dipakai!');return;}if(p&&p.length<6){alert('Min 6!');return;}var t=DB.teachers.find(function(x){return x.email.toLowerCase()===oldEmail.toLowerCase();});var upd=Object.assign({},t,{name:n,email:e});if(p)upd.password=p;var pr=oldEmail.toLowerCase()!==e.toLowerCase()?fbDelTeacher(oldEmail):Promise.resolve();pr.then(function(){return fbSetTeacher(upd);}).then(function(){closeModal();alert('Diperbarui!');});}
 function deleteTeacher(email){if(!confirm('Hapus?'))return;fbDelTeacher(email);}
 
-/* ============================================================
-   [FIX #1] GURU DASHBOARD — hanya kelas milik guru ini
-   ============================================================ */
+/* ===== GURU DASHBOARD ===== */
 function renderGuruDashboard(){
   document.getElementById('header-title-text').innerHTML=ico('settings')+' Dashboard Guru Pengampu';
   var mine=myClasses();
@@ -597,7 +503,7 @@ function renderGuruDashboard(){
     '<button class="btn" onclick="openActivityLog()">'+ico('activity')+' Aktivitas</button>'+
     '<button class="btn" onclick="openMeetingList()">'+ico('calendar')+' Absensi</button>'+
   '</div>';
-  h+='<div class="alert alert-info">'+ico('info')+'<div>Anda login sebagai <b>'+currentUser.name+'</b>. Hanya kelas yang <b>Anda buat</b> yang tampil di sini.</div></div>';
+  h+='<div class="alert alert-info">'+ico('info')+'<div>Anda login sebagai <b>'+currentUser.name+'</b>. Hanya kelas yang <b>Anda buat</b> yang tampil.</div></div>';
   h+='<h3 style="color:var(--text-strong);margin-bottom:14px;font-size:15px;font-weight:700;">'+ico('school')+' Kelas Saya ('+mine.length+')</h3>';
   if(mine.length===0){
     h+='<div class="empty-state">'+ico('school','lg')+'<p>Belum ada kelas. Klik <b>+ Tambah Kelas</b> untuk mulai.</p></div>';
@@ -624,7 +530,7 @@ function renderActivityFeed(role){
   if(role==='siswa'&&currentUser&&currentUser.type==='siswa'){
     var myDiv=getDivisionOfRole(currentUser.role);
     logs=logs.filter(function(l){
-      if(l.classId && l.classId!==currentUser.classId) return false;
+      if(l.classId && l.classId!==currentUser.classId)return false;
       if(!l.meta)return true;
       var lDiv=l.meta.division;
       if(!lDiv&&l.meta.role)lDiv=getDivisionOfRole(l.meta.role);
@@ -632,7 +538,7 @@ function renderActivityFeed(role){
     });
   }
   logs=logs.slice(0,10);
-  if(logs.length===0)return '';
+  if(logs.length===0)return'';
   var h='<div class="card card-accent amber" style="margin-top:20px;"><h3>'+ico('activity')+' Aktivitas Terbaru</h3><div class="activity-feed">';
   logs.forEach(function(l){
     var iconName='info';
@@ -666,7 +572,7 @@ function openActivityLog(){
 }
 
 /* ===== BROADCAST ===== */
-function canSendBroadcast(){if(!currentUser)return false;if(currentUser.type==='guru')return true;if(currentUser.type==='admin')return true;if(currentUser.type==='siswa')return ['pimpinan_produksi','sutradara'].indexOf(currentUser.role)>=0;return false;}
+function canSendBroadcast(){if(!currentUser)return false;if(currentUser.type==='guru')return true;if(currentUser.type==='admin')return true;if(currentUser.type==='siswa')return['pimpinan_produksi','sutradara'].indexOf(currentUser.role)>=0;return false;}
 
 window.openBroadcastModal=function(presetClassId){
   try{
@@ -676,11 +582,8 @@ window.openBroadcastModal=function(presetClassId){
       var tgt=DB.classes.find(function(c){return c.id===currentUser.classId;});
       if(!tgt){alert('Kelas tidak ditemukan.');return;}
       classList=[tgt];
-    } else if(currentUser.type==='guru'){
-      classList=myClasses();
-    } else {
-      classList=DB.classes.slice();
-    }
+    } else if(currentUser.type==='guru'){classList=myClasses();}
+    else{classList=DB.classes.slice();}
     if(classList.length===0){alert('Belum ada kelas.');return;}
     var classOptions=classList.map(function(c){return '<option value="'+c.id+'">'+c.name+' ('+((c.students||[]).length)+' siswa)</option>';}).join('');
     if(presetClassId)classOptions=classOptions.replace('value="'+presetClassId+'"','value="'+presetClassId+'" selected');
@@ -731,9 +634,9 @@ window.sendBroadcast=function(){
     var mode=(document.querySelector('input[name="bc-recipient-mode"]:checked')||{}).value||'all';
     if(!ti||!m){alert('Lengkapi!');return;}
     var c=DB.classes.find(function(x){return x.id===cid;});if(!c){alert('Kelas tidak ada!');return;}
-    if(currentUser.type==='guru' && !ownsClass(cid)){alert('Anda tidak berhak mengirim ke kelas ini.');return;}
+    if(currentUser.type==='guru'&&!ownsClass(cid)){alert('Anda tidak berhak mengirim ke kelas ini.');return;}
     var recipients=[];
-    if(mode==='all'){recipients=(c.students||[]).map(function(s){return {id:s.id,name:s.name,phone:s.phone||'',role:s.role};});}
+    if(mode==='all'){recipients=(c.students||[]).map(function(s){return{id:s.id,name:s.name,phone:s.phone||'',role:s.role};});}
     else{var boxes=document.querySelectorAll('.bc-target:checked');if(boxes.length===0){alert('Pilih penerima!');return;}boxes.forEach(function(b){recipients.push({id:b.value,name:b.getAttribute('data-name'),phone:b.getAttribute('data-phone')||'',role:b.getAttribute('data-role')||''});});}
     if(recipients.length===0){alert('Tidak ada penerima!');return;}
     var senderId=currentUser.type==='guru'?'guru':(currentUser.type==='admin'?'admin':currentUser.studentId);
@@ -741,33 +644,23 @@ window.sendBroadcast=function(){
     var senderRole=currentUser.role||currentUser.type||'';
 
     if(ch==='app'||ch==='both'){
-  if(mode==='all'){
-    fbAddNotif({id:uid(),classId:cid,fromId:senderId,fromName:senderName,fromType:currentUser.type,fromRole:currentUser.role||currentUser.type,toId:'all',type:t,title:ti,message:m,createdAt:Date.now(),readBy:[],doneBy:[]});
-  } else {
-    fbAddNotif({id:uid(),classId:cid,fromId:senderId,fromName:senderName,fromType:currentUser.type,fromRole:currentUser.role||currentUser.type,toId:'some',recipientIds:recipients.map(function(r){return r.id;}),type:t,title:ti,message:m,createdAt:Date.now(),readBy:[],doneBy:[]});
-  }
-}
+      if(mode==='all'){
+        fbAddNotif({id:uid(),classId:cid,fromId:senderId,fromName:senderName,fromType:currentUser.type,fromRole:senderRole,toId:'all',type:t,title:ti,message:m,createdAt:Date.now(),readBy:[],doneBy:[]});
+      } else {
+        fbAddNotif({id:uid(),classId:cid,fromId:senderId,fromName:senderName,fromType:currentUser.type,fromRole:senderRole,toId:'some',recipientIds:recipients.map(function(r){return r.id;}),type:t,title:ti,message:m,createdAt:Date.now(),readBy:[],doneBy:[]});
+      }
+    }
     var waRecipients=recipients.filter(function(r){return r.phone;});
     if(ch==='wa'||ch==='both'){
       if(waRecipients.length===0){alert('Tidak ada penerima dengan no. WA!');return;}
       waRecipients.forEach(function(rec){
-        if(firebaseReady){
-          fb.collection('wa_logs').doc(uid()).set(sanitizeFirestore({
-            id:uid(),classId:cid,
-            fromId:senderId,fromName:senderName,fromType:currentUser.type,fromRole:senderRole,
-            toId:rec.id,toName:rec.name,toRole:rec.role||'',toPhone:rec.phone,
-            channel:ch,type:'broadcast',title:ti,message:m,
-            createdAt:Date.now(),createdBy:senderName
-          }));
-        }
+        if(firebaseReady){fb.collection('wa_logs').doc(uid()).set(sanitizeFirestore({id:uid(),classId:cid,fromId:senderId,fromName:senderName,fromType:currentUser.type,fromRole:senderRole,toId:rec.id,toName:rec.name,toRole:rec.role||'',toPhone:rec.phone,channel:ch,type:'broadcast',title:ti,message:m,createdAt:Date.now(),createdBy:senderName}));}
       });
-      logActivity('broadcast',senderName+' kirim broadcast "'+ti+'" ke '+recipients.length+' siswa',
-        {classId:cid,division:currentUser.role?getDivisionOfRole(currentUser.role):'',role:currentUser.role||''});
+      logActivity('broadcast',senderName+' kirim broadcast "'+ti+'" ke '+recipients.length+' siswa',{classId:cid,division:currentUser.role?getDivisionOfRole(currentUser.role):'',role:currentUser.role||''});
       closeModal();
       showWaSendPanel(waRecipients,ti,m,senderName);
     } else {
-      logActivity('broadcast',senderName+' kirim broadcast "'+ti+'"',
-        {classId:cid,division:currentUser.role?getDivisionOfRole(currentUser.role):'',role:currentUser.role||''});
+      logActivity('broadcast',senderName+' kirim broadcast "'+ti+'"',{classId:cid,division:currentUser.role?getDivisionOfRole(currentUser.role):'',role:currentUser.role||''});
       closeModal();
       alert('Broadcast terkirim ke '+recipients.length+' siswa!');
     }
@@ -820,7 +713,6 @@ function addStage(){var n=document.getElementById('st-name').value.trim(),su=doc
 function openEditStageModal(i){var s=DB.stages[i];openModal('Edit Tahapan','<div class="form-group"><label>Nama</label><input id="st-name" value="'+s.name+'"></div><div class="form-group"><label>Sub-Judul</label><input id="st-subtitle" value="'+(s.subtitle||'')+'"></div><div class="form-group"><label>Deskripsi</label><textarea id="st-desc" rows="2">'+(s.description||'')+'</textarea></div><div class="form-group"><label>Deskripsi Panjang</label><textarea id="st-longdesc" rows="3">'+(s.longDesc||'')+'</textarea></div><div class="form-group"><label>Bobot (%)</label><input type="number" id="st-weight" min="1" max="100" value="'+s.weight+'"></div><button class="btn btn-primary btn-block" onclick="updateStage('+i+')">'+ico('save')+' Simpan</button>');}
 function updateStage(i){var n=document.getElementById('st-name').value.trim(),su=document.getElementById('st-subtitle').value.trim(),d=document.getElementById('st-desc').value.trim(),ld=document.getElementById('st-longdesc').value.trim(),w=parseFloat(document.getElementById('st-weight').value)||0;if(!n){alert('Nama wajib!');return;}if(w<=0||w>100){alert('Bobot 1-100!');return;}var stages=DB.stages.slice();stages[i]=Object.assign({},stages[i],{name:n,subtitle:su,description:d,longDesc:ld,weight:w});fbSetStages(stages);closeModal();alert('Diperbarui!');}
 function deleteStage(i){var s=DB.stages[i];if(!confirm('Hapus "'+s.name+'"?'))return;var stages=DB.stages.filter(function(_,ix){return ix!==i;});fbSetStages(stages);alert('Dihapus!');}
-
 function openActivationModal(cid){
   if(!ownsClass(cid)){alert('Tidak punya akses.');return;}
   var c=DB.classes.find(function(x){return x.id===cid;});if(!c)return;
@@ -833,14 +725,12 @@ function openActivationModal(cid){
   openModal('Aktivasi — '+c.name,h);
 }
 function toggleStageActivation(cid,sid,a){var cur=Object.assign({},DB.activeStages[cid]||{});cur[sid]=a;fbSetActiveStages(cid,cur).then(function(){closeModal();openActivationModal(cid);});}
-
 function openAddClassModal(){openModal('Tambah Kelas','<div class="form-group"><label>Nama Kelas</label><input id="new-class-name" placeholder="Contoh: IX-A"><small class="hint">Kode otomatis di-generate</small></div><button class="btn btn-primary btn-block" onclick="addClass()">'+ico('save')+' Simpan</button>');}
 function addClass(){
   var n=document.getElementById('new-class-name').value.trim();
   if(!n){alert('Nama wajib!');return;}
   if(DB.classes.some(function(c){return c.name.toLowerCase()===n.toLowerCase();})){alert('Kelas ada!');return;}
   var code=genClassCode(n),id=uid();
-  /* [FIX #1] simpan teacherEmail sebagai pemilik */
   var data={id:id,name:n,code:code,students:[],teacherEmail:(currentUser&&currentUser.email?currentUser.email:''),teacherName:(currentUser&&currentUser.name?currentUser.name:''),createdAt:Date.now()};
   fbSetClass(data).then(function(){
     closeModal();
@@ -849,7 +739,7 @@ function addClass(){
   });
 }
 
-/* ===== DELETE CLASS & STUDENT ===== */
+/* ===== DELETE ===== */
 function deleteClass(cid){
   var c=DB.classes.find(function(x){return x.id===cid;});
   if(!c){alert('Kelas tidak ditemukan.');return;}
@@ -942,20 +832,11 @@ function openDeadlineModal(cid){
 function saveDeadlines(cid){var obj={};DB.stages.forEach(function(s){var d=document.getElementById('dl-date-'+s.id).value,n=document.getElementById('dl-note-'+s.id).value.trim();if(d||n)obj[s.id]={date:d,note:n,setBy:currentUser.name,setAt:Date.now()};});fbSetDeadlines(cid,obj).then(function(){closeModal();alert('Disimpan!');});}
 
 /* ===== REMINDER ===== */
-function openSendReminderModal(tid,tcid){
-  var cid=tcid||currentUser.classId;
-  var c=DB.classes.find(function(x){return x.id===cid;});
-  if(!c)return;
-  var t=c.students.find(function(s){return s.id===tid;});if(!t){alert('Target tidak ditemukan!');return;}
-  openModal('Kirim Pengingat','<div class="alert alert-info">'+ico('user')+'<div>Ke <b>'+t.name+'</b></div></div><div class="form-group"><label>Jenis</label><select id="rm-type"><option value="tugas">Tugas</option><option value="instruksi">Instruksi</option><option value="info">Info</option></select></div><div class="form-group"><label>Judul</label><input id="rm-title"></div><div class="form-group"><label>Pesan</label><textarea id="rm-message" rows="3"></textarea></div><button class="btn btn-primary btn-block" onclick="sendReminder(\''+tid+'\',\''+cid+'\')">'+ico('send')+' Kirim</button>');
-}
+function openSendReminderModal(tid,tcid){var cid=tcid||currentUser.classId;var c=DB.classes.find(function(x){return x.id===cid;});if(!c)return;var t=c.students.find(function(s){return s.id===tid;});if(!t){alert('Target tidak ditemukan!');return;}openModal('Kirim Pengingat','<div class="alert alert-info">'+ico('user')+'<div>Ke <b>'+t.name+'</b></div></div><div class="form-group"><label>Jenis</label><select id="rm-type"><option value="tugas">Tugas</option><option value="instruksi">Instruksi</option><option value="info">Info</option></select></div><div class="form-group"><label>Judul</label><input id="rm-title"></div><div class="form-group"><label>Pesan</label><textarea id="rm-message" rows="3"></textarea></div><button class="btn btn-primary btn-block" onclick="sendReminder(\''+tid+'\',\''+cid+'\')">'+ico('send')+' Kirim</button>');}
 function sendReminder(tid,cid){var t=document.getElementById('rm-type').value,ti=document.getElementById('rm-title').value.trim(),m=document.getElementById('rm-message').value.trim();if(!ti||!m){alert('Lengkapi!');return;}var fid=currentUser.type==='guru'?'guru':currentUser.studentId;fbAddNotif({id:uid(),classId:cid,fromId:fid,fromName:currentUser.name,fromType:currentUser.type,toId:tid,type:t,title:ti,message:m,createdAt:Date.now(),readBy:[],doneBy:[]});closeModal();alert('Terkirim!');}
 
 /* ===== IMPORT EXCEL ===== */
-function openImportModal(cid){
-  if(!ownsClass(cid)){alert('Tidak punya akses.');return;}
-  openModal('Import Excel','<div class="alert alert-info">'+ico('info')+'<div><b>Format:</b> Nama | Email | Password | Role | No. WA</div></div><div class="action-row" style="margin-bottom:14px;"><button class="btn btn-sm" onclick="downloadTemplate()">'+ico('download')+' Template</button></div><label class="file-input"><input type="file" id="excel-file" accept=".xlsx,.xls" onchange="showFileName(this)"><p>Klik untuk pilih file Excel</p><div class="filename" id="filename-display"></div></label><button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="importExcel(\''+cid+'\')">'+ico('upload')+' Import</button>');
-}
+function openImportModal(cid){if(!ownsClass(cid)){alert('Tidak punya akses.');return;}openModal('Import Excel','<div class="alert alert-info">'+ico('info')+'<div><b>Format:</b> Nama | Email | Password | Role | No. WA</div></div><div class="action-row" style="margin-bottom:14px;"><button class="btn btn-sm" onclick="downloadTemplate()">'+ico('download')+' Template</button></div><label class="file-input"><input type="file" id="excel-file" accept=".xlsx,.xls" onchange="showFileName(this)"><p>Klik untuk pilih file Excel</p><div class="filename" id="filename-display"></div></label><button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="importExcel(\''+cid+'\')">'+ico('upload')+' Import</button>');}
 function showFileName(i){var n=i.files[0]?i.files[0].name:'';document.getElementById('filename-display').textContent=n;}
 function downloadTemplate(){var d=[['Nama','Email','Password','Role','No. WA'],['Ahmad Fauzi','ahmad@siswa.smp.belajar.id','#Smpn10smd','pemain','08123456789']];var ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=[{wch:25},{wch:35},{wch:15},{wch:25},{wch:15}];var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Template');XLSX.writeFile(wb,'Template_Import_Siswa.xlsx');}
 function importExcel(cid){
@@ -984,10 +865,7 @@ function importExcel(cid){
   };
   r.readAsArrayBuffer(f);
 }
-function openAddStudentModal(cid){
-  if(!ownsClass(cid)){alert('Tidak punya akses.');return;}
-  openModal('Tambah Siswa','<div class="form-group"><label>Nama</label><input id="ns-name"></div><div class="form-group"><label>Email</label><input type="email" id="ns-email"></div><div class="form-group"><label>No. WhatsApp</label><input type="tel" id="ns-phone"></div><div class="form-group pw-toggle"><label>Password</label><input type="password" id="ns-pw"><button class="toggle-btn" onclick="togglePw(\'ns-pw\',this)" type="button">👁</button></div><div class="form-group"><label>Peran</label><select id="ns-role">'+buildRoleOptions()+'</select></div><button class="btn btn-primary btn-block" onclick="addStudent(\''+cid+'\')">'+ico('save')+' Simpan</button>');
-}
+function openAddStudentModal(cid){if(!ownsClass(cid)){alert('Tidak punya akses.');return;}openModal('Tambah Siswa','<div class="form-group"><label>Nama</label><input id="ns-name"></div><div class="form-group"><label>Email</label><input type="email" id="ns-email"></div><div class="form-group"><label>No. WhatsApp</label><input type="tel" id="ns-phone"></div><div class="form-group pw-toggle"><label>Password</label><input type="password" id="ns-pw"><button class="toggle-btn" onclick="togglePw(\'ns-pw\',this)" type="button">👁</button></div><div class="form-group"><label>Peran</label><select id="ns-role">'+buildRoleOptions()+'</select></div><button class="btn btn-primary btn-block" onclick="addStudent(\''+cid+'\')">'+ico('save')+' Simpan</button>');}
 function buildRoleOptions(sel){var o='<option value="">-- Pilih --</option><optgroup label="— Tim Produksi —">';['pimpinan_produksi','sekretaris','bendahara','koor_publikasi','koor_perlengkapan','koor_akomodasi','anggota_publikasi','anggota_perlengkapan','anggota_akomodasi'].forEach(function(k){o+='<option value="'+k+'" '+(sel===k?'selected':'')+'>'+ROLES[k].label+'</option>';});o+='</optgroup><optgroup label="— Tim Artistik —">';['sutradara','asisten_sutradara','pemain','koor_panggung','koor_musik','koor_busana','koor_rias','koor_cahaya','anggota_panggung','anggota_musik','anggota_busana','anggota_rias','anggota_cahaya'].forEach(function(k){o+='<option value="'+k+'" '+(sel===k?'selected':'')+'>'+ROLES[k].label+'</option>';});o+='</optgroup>';return o;}
 function addStudent(cid){var n=document.getElementById('ns-name').value.trim(),e=document.getElementById('ns-email').value.trim().toLowerCase(),p=document.getElementById('ns-pw').value,r=document.getElementById('ns-role').value;var phEl=document.getElementById('ns-phone'),ph=phEl?phEl.value.replace(/\D/g,''):'';if(!n||!e||!p||!r){alert('Lengkapi!');return;}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){alert('Email invalid!');return;}if(p.length<6){alert('Min 6!');return;}var d=false;DB.classes.forEach(function(c){if(c.students.some(function(s){return s.email&&s.email.toLowerCase()===e;}))d=true;});if(d){alert('Email terdaftar!');return;}var c=DB.classes.find(function(x){return x.id===cid;});var ns=c.students.concat([{id:uid(),name:n,email:e,password:p,role:r,phone:ph||''}]);fbSetClass(Object.assign({},c,{students:ns})).then(function(){closeModal();});}
 function openEditStudentModal(cid,sid){if(!ownsClass(cid)){alert('Tidak punya akses.');return;}var c=DB.classes.find(function(x){return x.id===cid;});var s=c.students.find(function(x){return x.id===sid;});openModal('Edit Siswa','<div class="form-group"><label>Nama</label><input id="es-name" value="'+s.name+'"></div><div class="form-group"><label>Email</label><input type="email" id="es-email" value="'+(s.email||'')+'"></div><div class="form-group"><label>No. WA</label><input type="tel" id="es-phone" value="'+(s.phone||'')+'"></div><div class="form-group pw-toggle"><label>Password (kosongkan)</label><input type="password" id="es-pw"><button class="toggle-btn" onclick="togglePw(\'es-pw\',this)" type="button">👁</button></div><div class="form-group"><label>Peran</label><select id="es-role">'+buildRoleOptions(s.role)+'</select></div><button class="btn btn-primary btn-block" onclick="updateStudent(\''+cid+'\',\''+sid+'\')">'+ico('save')+' Simpan</button>');}
@@ -1060,14 +938,7 @@ function getAttendanceFactor(cid,sid){
   var my=att.filter(function(m){return m.classId===cid;});
   if(my.length===0)return null;
   var present=0,total=0;
-  my.forEach(function(m){
-    var r=m.records&&m.records[sid];
-    if(!r)return;
-    total++;
-    if(r==='hadir')present+=1;
-    else if(r==='izin'||r==='sakit')present+=0.75;
-    else if(r==='telat')present+=0.5;
-  });
+  my.forEach(function(m){var r=m.records&&m.records[sid];if(!r)return;total++;if(r==='hadir')present+=1;else if(r==='izin'||r==='sakit')present+=0.75;else if(r==='telat')present+=0.5;});
   if(total===0)return null;
   var pct=present/total;
   return 0.75+0.25*Math.min(1,Math.max(0,pct));
@@ -1096,9 +967,7 @@ function renderGuruClassGrading(cid){
     targets.forEach(function(t){
       var active=DB.stages.filter(function(s){return isStageActive(cid,s.id);});
       var done=0;
-      active.forEach(function(s){
-        if(DB.evaluations[cid]&&DB.evaluations[cid][t.id]&&DB.evaluations[cid][t.id]['guru']&&DB.evaluations[cid][t.id]['guru'][s.id]&&Object.keys(DB.evaluations[cid][t.id]['guru'][s.id]).length>0)done++;
-      });
+      active.forEach(function(s){if(DB.evaluations[cid]&&DB.evaluations[cid][t.id]&&DB.evaluations[cid][t.id]['guru']&&DB.evaluations[cid][t.id]['guru'][s.id]&&Object.keys(DB.evaluations[cid][t.id]['guru'][s.id]).length>0)done++;});
       var pct=active.length?Math.round(done/active.length*100):0;
       var final=calcFinalScore(cid,t.id);
       h+='<div class="card card-accent blue"><h3>'+ico('user')+' '+t.name+'</h3><p style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;">'+((ROLES[t.role]||{}).label||t.role)+'</p><div class="target-progress"><div class="label">Progress</div><div class="progress-container"><div class="progress-bar '+(pct===100?'complete':'partial')+'" style="width:'+pct+'%"></div></div><div class="pct-mini">'+done+'/'+active.length+'</div></div><div class="score-display">Skor akhir <span class="value">'+final.toFixed(2)+'</span></div><button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="openGradingForm(\''+cid+'\',\''+t.id+'\')">'+ico('edit')+' Nilai Sekarang</button></div>';
@@ -1107,7 +976,6 @@ function renderGuruClassGrading(cid){
   }
   document.getElementById('main-content').innerHTML=h;updateNotifBadge();
 }
-
 function openGradingForm(cid,tid){
   if(!ownsClass(cid)){alert('Tidak punya akses.');return;}
   var c=DB.classes.find(function(x){return x.id===cid;});if(!c)return;
@@ -1116,15 +984,8 @@ function openGradingForm(cid,tid){
   var ev=(DB.evaluations[cid]&&DB.evaluations[cid][tid])||{};
   var guruData=ev['guru']||{};
   var active=DB.stages.filter(function(s){return isStageActive(cid,s.id);});
-  var h='<div class="alert alert-info">'+ico('info')+'<div>Nilai <b>'+t.name+'</b> ('+((ROLES[t.role]||{}).label||t.role)+')<br><small>Nilai berdasarkan <b>bukti nyata</b> & <b>rubrik</b>, bukan opini pribadi.</small></div></div>';
-  h+='<div class="scale-guide">'+
-    '<div class="scale-guide-title">'+ico('target','sm')+' Panduan Skala Nilai</div>'+
-    '<div class="scale-guide-grid">'+
-      '<div class="scale-guide-item sg-4"><b>4</b><span>Sangat Baik</span><small>Melebihi standar & tepat waktu</small></div>'+
-      '<div class="scale-guide-item sg-3"><b>3</b><span>Baik</span><small>Sesuai standar yang diminta</small></div>'+
-      '<div class="scale-guide-item sg-2"><b>2</b><span>Cukup</span><small>Sebagian terpenuhi, perlu perbaikan</small></div>'+
-      '<div class="scale-guide-item sg-1"><b>1</b><span>Kurang</span><small>Tidak terpenuhi / tidak dikerjakan</small></div>'+
-    '</div></div>';
+  var h='<div class="alert alert-info">'+ico('info')+'<div>Nilai <b>'+t.name+'</b> ('+((ROLES[t.role]||{}).label||t.role)+')<br><small>Nilai berdasarkan <b>bukti nyata</b> & <b>rubrik</b>.</small></div></div>';
+  h+='<div class="scale-guide"><div class="scale-guide-title">'+ico('target','sm')+' Panduan Skala Nilai</div><div class="scale-guide-grid"><div class="scale-guide-item sg-4"><b>4</b><span>Sangat Baik</span><small>Melebihi standar & tepat waktu</small></div><div class="scale-guide-item sg-3"><b>3</b><span>Baik</span><small>Sesuai standar</small></div><div class="scale-guide-item sg-2"><b>2</b><span>Cukup</span><small>Sebagian terpenuhi</small></div><div class="scale-guide-item sg-1"><b>1</b><span>Kurang</span><small>Tidak terpenuhi</small></div></div></div>';
   if(active.length===0){h+='<div class="empty-state">'+ico('lock','lg')+'<p>Tidak ada tahap aktif.</p></div>';}
   else{
     active.forEach(function(s){
@@ -1132,16 +993,12 @@ function openGradingForm(cid,tid){
       h+='<div class="rubric-item"><h4>Tahap: '+s.name+' <span class="weight-info">'+s.weight+'%</span></h4><div class="desc">'+(s.description||'')+'</div>';
       rubric.forEach(function(r){
         var val=scores[r.id];
-        h+='<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);"><div style="font-weight:600;color:var(--text-strong);font-size:12.5px;">'+r.name+' <span class="weight-info">'+r.weight+'%</span></div><div class="desc" style="margin-top:3px;">'+r.desc+'</div><div class="radio-group">';
+        h+='<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);"><div style="font-weight:700;color:var(--text-strong);font-size:13.5px;">'+r.name+' <span class="weight-info">'+r.weight+'%</span></div><div class="desc" style="margin-top:4px;">'+r.desc+'</div>';
+        if(r.scale){h+='<div class="scale-explain"><b>Kriteria:</b> '+r.scale+'</div>';}
+        h+='<div class="radio-group">';
         var labels={4:{t:'Sangat Baik',s:'Melampaui standar'},3:{t:'Baik',s:'Sesuai standar'},2:{t:'Cukup',s:'Sebagian tercapai'},1:{t:'Kurang',s:'Tidak tercapai'}};
-    [4,3,2,1].forEach(function(v){
-      h+='<label class="radio-score rs-'+v+'"><input type="radio" name="ssc_'+r.id+'" value="'+v+'" '+(val===v?'checked':'')+'><div><b>'+v+' — '+labels[v].t+'</b><br><small>'+labels[v].s+'</small></div></label>';
-    });
-    h+='</div></div>';
-  });
-  h+='</div>';
-  h+='<div class="alert alert-warning" style="margin-top:12px;">'+ico('warning','sm')+'<div><b>Ingat:</b> Nilai yang objektif membantu rekan Anda berkembang.</div></div>';
-  h+='<button class="btn btn-primary btn-block btn-lg" onclick="saveSiswaGrade(\''+cid+'\',\''+tid+'\',\''+s.id+'\',\''+r.id+'\',this.value)"> '+v+' — '+lbl+'</label>';
+        [4,3,2,1].forEach(function(v){
+          h+='<label class="radio-score rs-'+v+'"><input type="radio" name="sc_'+s.id+'_'+r.id+'" value="'+v+'" '+(val===v?'checked':'')+' onchange="saveGradeValue(\''+cid+'\',\''+tid+'\',\''+s.id+'\',\''+r.id+'\',this.value)"><div><b>'+v+' — '+labels[v].t+'</b><br><small>'+labels[v].s+'</small></div></label>';
         });
         h+='</div></div>';
       });
@@ -1152,7 +1009,6 @@ function openGradingForm(cid,tid){
   h+='<button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="closeModal()">'+ico('check')+' Selesai</button>';
   openModal('Penilaian Guru — '+t.name,h);
 }
-
 function saveGradeValue(cid,tid,sid,rid,val){
   if(!firebaseReady)return;
   var key=cid+'__'+tid;
@@ -1163,9 +1019,7 @@ function saveGradeValue(cid,tid,sid,rid,val){
     if(!data.guru[sid])data.guru[sid]={};
     data.guru[sid][rid]=parseFloat(val);
     return doc.set(sanitizeFirestore(data),{merge:true});
-  }).then(function(){
-    logActivity('eval_submit',currentUser.name+' menilai '+tid+' tahap '+sid,{classId:cid,division:currentUser.role?getDivisionOfRole(currentUser.role):'guru',role:currentUser.role||''});
-  }).catch(function(e){console.error('saveGrade:',e);});
+  }).then(function(){logActivity('eval_submit',currentUser.name+' menilai '+tid+' tahap '+sid,{classId:cid,division:currentUser.role?getDivisionOfRole(currentUser.role):'guru',role:currentUser.role||''});}).catch(function(e){console.error('saveGrade:',e);});
 }
 
 /* ===== SISWA DASHBOARD ===== */
@@ -1181,9 +1035,8 @@ function renderSiswaDashboard(){
 
   h+='<h3 style="color:var(--text-strong);margin:20px 0 12px;font-size:15px;font-weight:700;">'+ico('layers')+' Tahapan Aktif</h3>';
   var active=DB.stages.filter(function(s){return isStageActive(c.id,s.id);});
-  if(active.length===0){
-    h+='<div class="alert alert-warning">'+ico('lock')+'<div>Belum ada tahap dibuka guru.</div></div>';
-  } else {
+  if(active.length===0){h+='<div class="alert alert-warning">'+ico('lock')+'<div>Belum ada tahap dibuka guru.</div></div>';}
+  else{
     h+='<div class="stage-grid">';
     active.forEach(function(s){
       var done=prog.byStage[s.id]?prog.byStage[s.id].done:0;
@@ -1211,16 +1064,14 @@ function renderSiswaDashboard(){
   updateNotifBadge();
   if(typeof window.__extrasRenderSiswa==='function')window.__extrasRenderSiswa();
 }
-
 function openStudentStageGrading(cid,sid){
   var c=DB.classes.find(function(x){return x.id===cid;});if(!c)return;
   var me=c.students.find(function(s){return s.id===currentUser.studentId;});if(!me)return;
   var stage=getStage(sid);if(!stage)return;
   var targets=c.students.filter(function(s){return s.id!==me.id&&canEvaluate(me.role,s.role);});
   var h='<div class="stage-header"><h3>'+ico('layers')+' '+stage.name+'</h3><p>'+(stage.longDesc||stage.description)+'</p></div>';
-  if(targets.length===0){
-    h+='<div class="empty-state">'+ico('users','lg')+'<p>Tidak ada rekan yang bisa dinilai pada tahap ini.</p></div>';
-  } else {
+  if(targets.length===0){h+='<div class="empty-state">'+ico('users','lg')+'<p>Tidak ada rekan yang bisa dinilai pada tahap ini.</p></div>';}
+  else{
     h+='<p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Pilih rekan untuk dinilai:</p>';
     targets.forEach(function(t){
       var ev=DB.evaluations[cid]&&DB.evaluations[cid][t.id]?DB.evaluations[cid][t.id]:{};
@@ -1231,7 +1082,6 @@ function openStudentStageGrading(cid,sid){
   }
   openModal('Penilaian Tahap: '+stage.name,h);
 }
-
 function openSiswaGradingForm(cid,tid,sid){
   var c=DB.classes.find(function(x){return x.id===cid;});if(!c)return;
   var me=c.students.find(function(s){return s.id===currentUser.studentId;});if(!me)return;
@@ -1241,42 +1091,31 @@ function openSiswaGradingForm(cid,tid,sid){
   var ev=DB.evaluations[cid]&&DB.evaluations[cid][tid]?DB.evaluations[cid][tid]:{};
   var myScores=ev[me.id]&&ev[me.id][sid]?ev[me.id][sid]:{};
   var h='<div class="alert alert-info">'+ico('info')+'<div>Menilai <b>'+t.name+'</b> — '+stage.name+'<br><small>Nilai berdasarkan <b>bukti nyata</b> & <b>rubrik</b>, bukan opini pribadi.</small></div></div>';
-  h+='<div class="scale-guide">'+
-    '<div class="scale-guide-title">'+ico('target','sm')+' Panduan Skala Nilai</div>'+
-    '<div class="scale-guide-grid">'+
-      '<div class="scale-guide-item sg-4"><b>4</b><span>Sangat Baik</span><small>Melebihi standar & tepat waktu</small></div>'+
-      '<div class="scale-guide-item sg-3"><b>3</b><span>Baik</span><small>Sesuai standar yang diminta</small></div>'+
-      '<div class="scale-guide-item sg-2"><b>2</b><span>Cukup</span><small>Sebagian terpenuhi, perlu perbaikan</small></div>'+
-      '<div class="scale-guide-item sg-1"><b>1</b><span>Kurang</span><small>Tidak terpenuhi / tidak dikerjakan</small></div>'+
-    '</div></div>';
+  h+='<div class="scale-guide"><div class="scale-guide-title">'+ico('target','sm')+' Panduan Skala Nilai</div><div class="scale-guide-grid"><div class="scale-guide-item sg-4"><b>4</b><span>Sangat Baik</span><small>Melebihi standar & tepat waktu</small></div><div class="scale-guide-item sg-3"><b>3</b><span>Baik</span><small>Sesuai standar</small></div><div class="scale-guide-item sg-2"><b>2</b><span>Cukup</span><small>Sebagian terpenuhi</small></div><div class="scale-guide-item sg-1"><b>1</b><span>Kurang</span><small>Tidak terpenuhi</small></div></div></div>';
   h+='<div class="rubric-item"><h4>Aspek Penilaian</h4><div class="desc">'+((ROLES[t.role]||{}).label||t.role)+'</div>';
   rubric.forEach(function(r){
     var val=myScores[r.id];
-    h+='<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);"><div style="font-weight:600;color:var(--text-strong);font-size:12.5px;">'+r.name+' <span class="weight-info">'+r.weight+'%</span></div><div class="desc" style="margin-top:3px;">'+r.desc+'</div>';
-    if(r.scale){h+='<div class="scale-explain">'+r.scale+'</div>';}
+    h+='<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);"><div style="font-weight:700;color:var(--text-strong);font-size:13.5px;">'+r.name+' <span class="weight-info">'+r.weight+'%</span></div><div class="desc" style="margin-top:4px;">'+r.desc+'</div>';
+    if(r.scale){h+='<div class="scale-explain"><b>Kriteria:</b> '+r.scale+'</div>';}
     h+='<div class="radio-group">';
     var labels={4:{t:'Sangat Baik',s:'Melampaui standar'},3:{t:'Baik',s:'Sesuai standar'},2:{t:'Cukup',s:'Sebagian tercapai'},1:{t:'Kurang',s:'Tidak tercapai'}};
-        [4,3,2,1].forEach(function(v){
-          h+='<label class="radio-score rs-'+v+'"><input type="radio" name="sc_'+s.id+'_'+r.id+'" value="'+v+'" '+(val===v?'checked':'')+' onchange="saveGradeValue(\''+cid+'\',\''+tid+'\',\''+s.id+'\',\''+r.id+'\',this.value)"><div><b>'+v+' — '+labels[v].t+'</b><br><small>'+labels[v].s+'</small></div></label>';
-        });
+    [4,3,2,1].forEach(function(v){
+      h+='<label class="radio-score rs-'+v+'"><input type="radio" name="ssc_'+r.id+'" value="'+v+'" '+(val===v?'checked':'')+'><div><b>'+v+' — '+labels[v].t+'</b><br><small>'+labels[v].s+'</small></div></label>';
+    });
     h+='</div></div>';
   });
   h+='</div>';
+  h+='<div class="alert alert-warning" style="margin-top:12px;">'+ico('warning','sm')+'<div><b>Ingat:</b> Nilai yang objektif membantu rekan Anda berkembang.</div></div>';
   h+='<button class="btn btn-primary btn-block btn-lg" onclick="saveSiswaGrade(\''+cid+'\',\''+t.id+'\',\''+sid+'\')">'+ico('save')+' Simpan Penilaian</button>';
   openModal('Nilai: '+t.name,h);
 }
-
 function saveSiswaGrade(cid,tid,sid){
   var c=DB.classes.find(function(x){return x.id===cid;});if(!c)return;
   var t=c.students.find(function(x){return x.id===tid;});if(!t)return;
   var me=currentUser.studentId;
   var rubric=getRubricFor(t.role);
   var scores={},complete=true;
-  rubric.forEach(function(r){
-    var sel=document.querySelector('input[name="ssc_'+r.id+'"]:checked');
-    if(!sel){complete=false;return;}
-    scores[r.id]=parseFloat(sel.value);
-  });
+  rubric.forEach(function(r){var sel=document.querySelector('input[name="ssc_'+r.id+'"]:checked');if(!sel){complete=false;return;}scores[r.id]=parseFloat(sel.value);});
   if(!complete){alert('Lengkapi semua aspek!');return;}
   if(!firebaseReady){alert('Firebase belum siap.');return;}
   var key=cid+'__'+tid;
@@ -1325,10 +1164,7 @@ function exportRecapExcel(cid){
   var rows=[header];
   c.students.forEach(function(t,i){
     var r=[i+1,t.name,t.email||'-',((ROLES[t.role]||{}).label||t.role)];
-    DB.stages.forEach(function(s){
-      if(!isStageActive(cid,s.id)){r.push('—');return;}
-      r.push(calcStageScore(cid,t.id,s.id).toFixed(2));
-    });
+    DB.stages.forEach(function(s){if(!isStageActive(cid,s.id)){r.push('—');return;}r.push(calcStageScore(cid,t.id,s.id).toFixed(2));});
     r.push(calcFinalScore(cid,t.id).toFixed(2));
     rows.push(r);
   });
@@ -1372,11 +1208,7 @@ function createMeeting(){
   if(firebaseReady){fb.collection('meetings').doc(id).set(sanitizeFirestore(m)).then(function(){closeModal();openMeetingList();logActivity('meeting_create',currentUser.name+' buat sesi absensi: '+ti,{classId:cid});});}
   else{DB.meetings[id]=m;closeModal();openMeetingList();}
 }
-function deleteMeeting(mid){
-  if(!confirm('Hapus sesi absensi ini?'))return;
-  if(firebaseReady){fb.collection('meetings').doc(mid).delete().then(function(){openMeetingList();});}
-  else{delete DB.meetings[mid];openMeetingList();}
-}
+function deleteMeeting(mid){if(!confirm('Hapus sesi absensi ini?'))return;if(firebaseReady){fb.collection('meetings').doc(mid).delete().then(function(){openMeetingList();});}else{delete DB.meetings[mid];openMeetingList();}}
 function openMeetingAttendance(mid){
   var m=DB.meetings[mid];if(!m){alert('Sesi tidak ditemukan.');return;}
   if(!ownsClass(m.classId)){alert('Tidak punya akses.');return;}
@@ -1452,12 +1284,6 @@ function renderWaLogsBody(){
   var b=document.getElementById('wa-logs-body');if(!b)return;
   var q=(document.getElementById('wa-log-search')&&document.getElementById('wa-log-search').value||'').toLowerCase();
   var logs=(DB.waLogs||[]).slice();
-  /* Filter per kelas utk guru */
-  if(currentUser&&currentUser.type==='guru'){
-    var myIds=myClasses().map(function(c){return c.id;});
-    logs=logs.filter(function(l){return !l.classId||myIds.indexOf(l.classId)>=0;});
-  }
-  /* Filter per kelas utk guru */
   if(currentUser&&currentUser.type==='guru'){
     var myIds=myClasses().map(function(c){return c.id;});
     logs=logs.filter(function(l){return !l.classId||myIds.indexOf(l.classId)>=0;});
@@ -1480,9 +1306,7 @@ function exportWaLogs(){
   }
   if(logs.length===0){alert('Tidak ada log.');return;}
   var rows=[['Waktu','Dari','Peran','Ke','Peran Penerima','No. WA','Channel','Jenis','Judul','Pesan']];
-  logs.forEach(function(l){
-    rows.push([new Date(l.createdAt).toLocaleString('id-ID'),l.fromName,l.fromRole||l.fromType,l.toName,(ROLES[l.toRole]||{}).label||l.toRole||'',l.toPhone||'-',l.channel,l.type,l.title,l.message]);
-  });
+  logs.forEach(function(l){rows.push([new Date(l.createdAt).toLocaleString('id-ID'),l.fromName,l.fromRole||l.fromType,l.toName,(ROLES[l.toRole]||{}).label||l.toRole||'',l.toPhone||'-',l.channel,l.type,l.title,l.message]);});
   var ws=XLSX.utils.aoa_to_sheet(rows);
   ws['!cols']=[{wch:20},{wch:20},{wch:20},{wch:20},{wch:20},{wch:14},{wch:10},{wch:12},{wch:30},{wch:50}];
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Log');
@@ -1574,8 +1398,6 @@ window.calcStageScore=calcStageScore;
 window.calcFinalScore=calcFinalScore;
 window.getAttendanceFactor=getAttendanceFactor;
 window.sanitizeFirestore=sanitizeFirestore;
-
-/* Re-expose fungsi render */
 window.renderGuruDashboard=renderGuruDashboard;
 window.renderSiswaDashboard=renderSiswaDashboard;
 window.renderAdminDashboard=renderAdminDashboard;
