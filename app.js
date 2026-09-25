@@ -262,6 +262,15 @@ function subscribeAll(){
   /* [FIX #3] Tidak ada seeding demo kelas */
   unsubs.push(fb.collection('classes').onSnapshot(function(snap){
     DB.classes=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
+    /* Auto-hapus kelas lama tanpa teacherEmail (mis. IX-S demo) */
+    DB.classes.forEach(function(c){
+      if(!c.teacherEmail && (c.name==='IX-S' || c.code==='IXS-2025')){
+        console.log('Hapus kelas lama:', c.name, c.id);
+        fb.collection('classes').doc(c.id).delete().catch(function(){});
+      }
+    });
+    refreshClassDropdown();
+    DB.classes=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
     refreshClassDropdown();
     if(currentUser&&currentUser.type==='siswa'){
       var c=DB.classes.find(function(x){return x.id===currentUser.classId;});
@@ -360,7 +369,13 @@ function countAssessors(c,t){var v=DB.evaluations[c]&&DB.evaluations[c][t];if(!v
 function getNotifsFor(u){
   if(!u)return[];
   if(u.type==='siswa'){
-    return DB.notifications.filter(function(n){return n.classId===u.classId&&(n.toId===u.studentId||n.toId==='all');});
+    return DB.notifications.filter(function(n){
+      if(n.classId!==u.classId) return false;
+      if(n.toId==='all') return true;
+      if(n.toId===u.studentId) return true;
+      if(n.recipientIds && n.recipientIds.indexOf(u.studentId)>=0) return true;
+      return false;
+    });
   }
   if(u.type==='guru'){
     /* [FIX #1] hanya notifikasi dari kelas milik guru ini */
@@ -726,13 +741,12 @@ window.sendBroadcast=function(){
     var senderRole=currentUser.role||currentUser.type||'';
 
     if(ch==='app'||ch==='both'){
-      fbAddNotif({
-        id:uid(),classId:cid,fromId:senderId,fromName:senderName,
-        fromType:currentUser.type,fromRole:senderRole,
-        toId:mode==='all'?'all':String(recipients.length)+' penerima',
-        type:t,title:ti,message:m,createdAt:Date.now(),readBy:[],doneBy:[]
-      });
-    }
+  if(mode==='all'){
+    fbAddNotif({id:uid(),classId:cid,fromId:senderId,fromName:senderName,fromType:currentUser.type,fromRole:currentUser.role||currentUser.type,toId:'all',type:t,title:ti,message:m,createdAt:Date.now(),readBy:[],doneBy:[]});
+  } else {
+    fbAddNotif({id:uid(),classId:cid,fromId:senderId,fromName:senderName,fromType:currentUser.type,fromRole:currentUser.role||currentUser.type,toId:'some',recipientIds:recipients.map(function(r){return r.id;}),type:t,title:ti,message:m,createdAt:Date.now(),readBy:[],doneBy:[]});
+  }
+}
     var waRecipients=recipients.filter(function(r){return r.phone;});
     if(ch==='wa'||ch==='both'){
       if(waRecipients.length===0){alert('Tidak ada penerima dengan no. WA!');return;}
@@ -1102,7 +1116,15 @@ function openGradingForm(cid,tid){
   var ev=(DB.evaluations[cid]&&DB.evaluations[cid][tid])||{};
   var guruData=ev['guru']||{};
   var active=DB.stages.filter(function(s){return isStageActive(cid,s.id);});
-  var h='<div class="alert alert-info">'+ico('info')+'<div>Nilai <b>'+t.name+'</b> ('+((ROLES[t.role]||{}).label||t.role)+')</div></div>';
+  var h='<div class="alert alert-info">'+ico('info')+'<div>Nilai <b>'+t.name+'</b> ('+((ROLES[t.role]||{}).label||t.role)+')<br><small>Nilai berdasarkan <b>bukti nyata</b> & <b>rubrik</b>, bukan opini pribadi.</small></div></div>';
+  h+='<div class="scale-guide">'+
+    '<div class="scale-guide-title">'+ico('target','sm')+' Panduan Skala Nilai</div>'+
+    '<div class="scale-guide-grid">'+
+      '<div class="scale-guide-item sg-4"><b>4</b><span>Sangat Baik</span><small>Melebihi standar & tepat waktu</small></div>'+
+      '<div class="scale-guide-item sg-3"><b>3</b><span>Baik</span><small>Sesuai standar yang diminta</small></div>'+
+      '<div class="scale-guide-item sg-2"><b>2</b><span>Cukup</span><small>Sebagian terpenuhi, perlu perbaikan</small></div>'+
+      '<div class="scale-guide-item sg-1"><b>1</b><span>Kurang</span><small>Tidak terpenuhi / tidak dikerjakan</small></div>'+
+    '</div></div>';
   if(active.length===0){h+='<div class="empty-state">'+ico('lock','lg')+'<p>Tidak ada tahap aktif.</p></div>';}
   else{
     active.forEach(function(s){
@@ -1111,9 +1133,15 @@ function openGradingForm(cid,tid){
       rubric.forEach(function(r){
         var val=scores[r.id];
         h+='<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);"><div style="font-weight:600;color:var(--text-strong);font-size:12.5px;">'+r.name+' <span class="weight-info">'+r.weight+'%</span></div><div class="desc" style="margin-top:3px;">'+r.desc+'</div><div class="radio-group">';
-        [4,3,2,1].forEach(function(v){
-          var lbl={4:'Sangat Baik',3:'Baik',2:'Cukup',1:'Kurang'}[v];
-          h+='<label><input type="radio" name="sc_'+s.id+'_'+r.id+'" value="'+v+'" '+(val===v?'checked':'')+' onchange="saveGradeValue(\''+cid+'\',\''+tid+'\',\''+s.id+'\',\''+r.id+'\',this.value)"> '+v+' — '+lbl+'</label>';
+        var labels={4:{t:'Sangat Baik',s:'Melampaui standar'},3:{t:'Baik',s:'Sesuai standar'},2:{t:'Cukup',s:'Sebagian tercapai'},1:{t:'Kurang',s:'Tidak tercapai'}};
+    [4,3,2,1].forEach(function(v){
+      h+='<label class="radio-score rs-'+v+'"><input type="radio" name="ssc_'+r.id+'" value="'+v+'" '+(val===v?'checked':'')+'><div><b>'+v+' — '+labels[v].t+'</b><br><small>'+labels[v].s+'</small></div></label>';
+    });
+    h+='</div></div>';
+  });
+  h+='</div>';
+  h+='<div class="alert alert-warning" style="margin-top:12px;">'+ico('warning','sm')+'<div><b>Ingat:</b> Nilai yang objektif membantu rekan Anda berkembang.</div></div>';
+  h+='<button class="btn btn-primary btn-block btn-lg" onclick="saveSiswaGrade(\''+cid+'\',\''+tid+'\',\''+s.id+'\',\''+r.id+'\',this.value)"> '+v+' — '+lbl+'</label>';
         });
         h+='</div></div>';
       });
@@ -1212,17 +1240,25 @@ function openSiswaGradingForm(cid,tid,sid){
   var rubric=getRubricFor(t.role);
   var ev=DB.evaluations[cid]&&DB.evaluations[cid][tid]?DB.evaluations[cid][tid]:{};
   var myScores=ev[me.id]&&ev[me.id][sid]?ev[me.id][sid]:{};
-  var h='<div class="alert alert-info">'+ico('info')+'<div>Menilai <b>'+t.name+'</b> — '+stage.name+'</div></div>';
+  var h='<div class="alert alert-info">'+ico('info')+'<div>Menilai <b>'+t.name+'</b> — '+stage.name+'<br><small>Nilai berdasarkan <b>bukti nyata</b> & <b>rubrik</b>, bukan opini pribadi.</small></div></div>';
+  h+='<div class="scale-guide">'+
+    '<div class="scale-guide-title">'+ico('target','sm')+' Panduan Skala Nilai</div>'+
+    '<div class="scale-guide-grid">'+
+      '<div class="scale-guide-item sg-4"><b>4</b><span>Sangat Baik</span><small>Melebihi standar & tepat waktu</small></div>'+
+      '<div class="scale-guide-item sg-3"><b>3</b><span>Baik</span><small>Sesuai standar yang diminta</small></div>'+
+      '<div class="scale-guide-item sg-2"><b>2</b><span>Cukup</span><small>Sebagian terpenuhi, perlu perbaikan</small></div>'+
+      '<div class="scale-guide-item sg-1"><b>1</b><span>Kurang</span><small>Tidak terpenuhi / tidak dikerjakan</small></div>'+
+    '</div></div>';
   h+='<div class="rubric-item"><h4>Aspek Penilaian</h4><div class="desc">'+((ROLES[t.role]||{}).label||t.role)+'</div>';
   rubric.forEach(function(r){
     var val=myScores[r.id];
     h+='<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);"><div style="font-weight:600;color:var(--text-strong);font-size:12.5px;">'+r.name+' <span class="weight-info">'+r.weight+'%</span></div><div class="desc" style="margin-top:3px;">'+r.desc+'</div>';
     if(r.scale){h+='<div class="scale-explain">'+r.scale+'</div>';}
     h+='<div class="radio-group">';
-    [4,3,2,1].forEach(function(v){
-      var lbl={4:'Sangat Baik',3:'Baik',2:'Cukup',1:'Kurang'}[v];
-      h+='<label><input type="radio" name="ssc_'+r.id+'" value="'+v+'" '+(val===v?'checked':'')+'> '+v+' — '+lbl+'</label>';
-    });
+    var labels={4:{t:'Sangat Baik',s:'Melampaui standar'},3:{t:'Baik',s:'Sesuai standar'},2:{t:'Cukup',s:'Sebagian tercapai'},1:{t:'Kurang',s:'Tidak tercapai'}};
+        [4,3,2,1].forEach(function(v){
+          h+='<label class="radio-score rs-'+v+'"><input type="radio" name="sc_'+s.id+'_'+r.id+'" value="'+v+'" '+(val===v?'checked':'')+' onchange="saveGradeValue(\''+cid+'\',\''+tid+'\',\''+s.id+'\',\''+r.id+'\',this.value)"><div><b>'+v+' — '+labels[v].t+'</b><br><small>'+labels[v].s+'</small></div></label>';
+        });
     h+='</div></div>';
   });
   h+='</div>';
@@ -1416,6 +1452,11 @@ function renderWaLogsBody(){
   var b=document.getElementById('wa-logs-body');if(!b)return;
   var q=(document.getElementById('wa-log-search')&&document.getElementById('wa-log-search').value||'').toLowerCase();
   var logs=(DB.waLogs||[]).slice();
+  /* Filter per kelas utk guru */
+  if(currentUser&&currentUser.type==='guru'){
+    var myIds=myClasses().map(function(c){return c.id;});
+    logs=logs.filter(function(l){return !l.classId||myIds.indexOf(l.classId)>=0;});
+  }
   /* Filter per kelas utk guru */
   if(currentUser&&currentUser.type==='guru'){
     var myIds=myClasses().map(function(c){return c.id;});
